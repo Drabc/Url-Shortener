@@ -1,0 +1,24 @@
+{
+  "name": "URL Shortener Dev",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "../docker-compose.override.yml"
+  ],
+  "service": "api",
+  "workspaceFolder": "/var/www/app",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/sh"
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-tslint-plugin",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  "shutdownAction": "stopCompose",
+  "postStartCommand": "cp -r /ssh-readonly/* ~/.ssh && chmod 700 ~/.ssh && chmod -R 600 ~/.ssh/id_*S && chmod 644 ~/.ssh/id*.pub && echo 'SSH keys copied and permissions set.'",
+}
