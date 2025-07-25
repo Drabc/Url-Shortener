@@ -1,0 +1,27 @@
+{
+  "name": "urlshortener",
+  "version": "1.0.0",
+  "description": "Sample URL shortener API in NodeJs/Express",
+  "license": "ISC",
+  "author": "Salvador Bernabel",
+  "type": "module",
+  "main": "src/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:dev": "tsx watch src/server.ts"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.1",
+    "@types/express": "^5.0.3",
+    "nodemon": "^3.1.10",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "envalid": "^8.1.0",
+    "express": "^5.1.0",
+    "ioredis": "^5.6.1",
+    "nanoid": "^5.1.5"
+  }
+}
