@@ -21,6 +21,7 @@ RUN if [ "$NODE_ENV" = "production" ]; then \
 FROM deps AS dev
 
 RUN apk add --no-cache git
+RUN apk add --no-cache openssh-client
 
 WORKDIR /var/www/app
 
