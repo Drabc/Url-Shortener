@@ -1,0 +1,9 @@
+# VS Code
+.devcontainer
+
+# Deps
+node_modules
+
+# env
+.env
+docker-compose.override.yml
