@@ -30,7 +30,7 @@ WORKDIR /var/www/app
 
 FROM deps AS builder
 
-WORKDIR /var/www/app
+WORKDIR /build
 
 COPY src ./src
 

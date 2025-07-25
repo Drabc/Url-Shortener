@@ -20,7 +20,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
     normalizedError = new ApiError('Internal Server Error', 500)
   }
 
-  // Temporary for dev. Use different rrror fomatter based on env
+  // Temporary for dev. Use different error fomatter based on env
   res.status(normalizedError.statusCode).json({
     error: {
       code: normalizedError.statusCode,

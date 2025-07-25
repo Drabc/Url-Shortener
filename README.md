@@ -16,4 +16,4 @@
 
 ## Frontend
 
-- User Dashboaord
+- User Dashboard
