@@ -15,7 +15,6 @@
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "ms-vscode.vscode-typescript-tslint-plugin",
         "eamodio.gitlens"
       ]
     }
