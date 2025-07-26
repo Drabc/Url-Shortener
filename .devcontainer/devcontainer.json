@@ -9,7 +9,8 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.shell.linux": "/bin/sh"
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.shell.linux": "/bin/bash"
       },
       "extensions": [
         "dbaeumer.vscode-eslint",
@@ -20,5 +21,5 @@
     }
   },
   "shutdownAction": "stopCompose",
-  "postStartCommand": "cp -r /ssh-readonly/* ~/.ssh && chmod 700 ~/.ssh && chmod -R 600 ~/.ssh/id_*S && chmod 644 ~/.ssh/id*.pub && echo 'SSH keys copied and permissions set.'",
+  "postCreateCommand": ". .devcontainer/post-create.sh"
 }

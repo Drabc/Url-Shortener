@@ -2,8 +2,8 @@
 
 ## Backend
 
-- response formatter
 - setup linter
+- response formatter
 - Establish communication format
 - Flesh out service
 - Figure out a way to dynamically load configs based on env (if redis, only require redis configs)
