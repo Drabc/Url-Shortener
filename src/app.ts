@@ -1,6 +1,8 @@
-import express, { Express, Router } from 'express'
+import express, { Express, Router, Request, Response } from 'express'
+import swaggerUi from 'swagger-ui-express'
 
 import { errorHandler } from './middlewares/error-handler.middleware.js'
+import { swaggerSpec } from './swagger.js'
 
 interface AppDeps {
   apiRouter: Router
@@ -9,6 +11,10 @@ interface AppDeps {
 
 export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
   const app: Express = express()
+
+  // docs
+  app.get('/openapi.json', (_req: Request, res: Response) => res.json(swaggerSpec))
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
   // middlewares
   app.use(express.json())
