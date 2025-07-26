@@ -1,4 +1,5 @@
 import { RedisOptions, Redis } from 'ioredis'
+
 import { createApp } from './app.js'
 import { ShortenerController } from './controllers/shortener.controller.js'
 import { createShortenerRouter } from './routes/shortener.routes.js'
@@ -14,11 +15,10 @@ bootstrap().catch((err) => {
 })
 
 async function bootstrap() {
-
   const redisOptions: RedisOptions = {
     host: config.redisHost,
     password: config.redisPassword,
-    username: config.redisUsername
+    username: config.redisUsername,
   }
 
   const redisClient = new Redis(redisOptions)
@@ -29,7 +29,7 @@ async function bootstrap() {
 
   const redirectRouter = createRedirectRoutes(shortenerController)
 
-  const app = createApp({ apiRouter, redirectRouter})
+  const app = createApp({ apiRouter, redirectRouter })
 
   const server = app.listen(config.port, () => {
     console.log(`Server is running on port ${config.port}`)

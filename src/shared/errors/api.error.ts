@@ -5,7 +5,7 @@ export class ApiError extends Error {
     super(message)
     this.statusCode = statusCode
 
-    if(cause) {
+    if (cause) {
       this.stack = cause.stack
     }
   }

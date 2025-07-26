@@ -5,7 +5,7 @@ const env = cleanEnv(process.env, {
   REDIS_HOST: str(),
   REDIS_PORT: port({ default: 6379 }),
   REDIS_USERNAME: str(),
-  REDIS_PASSWORD: str()
+  REDIS_PASSWORD: str(),
 })
 
 export const config = {
@@ -13,5 +13,5 @@ export const config = {
   redisHost: env.REDIS_HOST,
   redisPort: env.REDIS_PORT,
   redisUsername: env.REDIS_USERNAME,
-  redisPassword: env.REDIS_PASSWORD
+  redisPassword: env.REDIS_PASSWORD,
 }

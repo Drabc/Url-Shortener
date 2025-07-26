@@ -1,4 +1,5 @@
 import { Redis } from 'ioredis'
+
 import { IUrlRepository } from './url-repository.interface.js'
 
 export class RedisRepository implements IUrlRepository {

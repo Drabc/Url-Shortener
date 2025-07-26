@@ -1,8 +1,9 @@
 import express, { Express, Router } from 'express'
+
 import { errorHandler } from './middlewares/error-handler.middleware.js'
 
 interface AppDeps {
-  apiRouter: Router,
+  apiRouter: Router
   redirectRouter: Router
 }
 

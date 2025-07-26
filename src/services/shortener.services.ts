@@ -1,9 +1,13 @@
 import { customAlphabet } from 'nanoid'
+
 import { IUrlRepository } from '../repositories/url-repository.interface.js'
 import { NotFoundError } from '../shared/errors/index.js'
 
 export class ShortenerService {
-  private nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
+  private nanoid = customAlphabet(
+    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    10,
+  )
   private urlStorageClient: IUrlRepository
 
   constructor(urlStorageClient: IUrlRepository) {
@@ -24,5 +28,4 @@ export class ShortenerService {
     }
     return url
   }
-
 }

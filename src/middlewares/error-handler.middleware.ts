@@ -1,10 +1,16 @@
 import { NextFunction, Request, Response } from 'express'
+
 import { ApiError } from '../shared/errors/api.error.js'
 
-export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
+export function errorHandler(
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   // If headers already sent, delegate to default Express handler to avoid double‑send exception
   if (res.headersSent) {
-    return next(err);
+    return next(err)
   }
 
   // Temporary: integrate pino
@@ -27,8 +33,8 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
       message: normalizedError.message,
       details: {
         stack: normalizedError.stack?.split('\n'),
-        url: req.originalUrl
-      }
-    }
+        url: req.originalUrl,
+      },
+    },
   })
 }

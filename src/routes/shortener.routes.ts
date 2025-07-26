@@ -1,4 +1,5 @@
 import { Router } from 'express'
+
 import { ShortenerController } from '../controllers/shortener.controller.js'
 
 export function createShortenerRouter(controller: ShortenerController): Router {
