@@ -16,5 +16,5 @@ export const swaggerSpec = swaggerJSDoc({
     },
     servers: [{ url: config.baseUrl }],
   },
-  apis: ['./routes/redirect.routes.ts', './routes/v1.routes.ts'],
+  apis: ['./src/routes/**/*.ts'],
 }) as OpenAPIV3.Document
