@@ -7,8 +7,9 @@ export class ShortenerController {
 
   public async shorten(req: Request, res: Response) {
     const { url } = req.body
-    // use response formatter
-    res.status(201).send({ url: await this.shortenerService.shortenUrl(url) })
+    res
+      .status(201)
+      .send({ shortUrl: await this.shortenerService.shortenUrl(url) })
   }
 
   public async resolve(req: Request, res: Response) {

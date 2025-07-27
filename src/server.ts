@@ -6,7 +6,7 @@ import { createShortenerRouter } from './routes/shortener.routes.js'
 import { createV1Router } from './routes/v1.routes.js'
 import { ShortenerService } from './services/shortener.services.js'
 import { config } from './config/config.js'
-import { RedisRepository } from './repositories/redis.repository.js'
+import { RedisShortUrlRepository } from './repositories/redis-short-url.repository.js'
 import { createRedirectRoutes } from './routes/redirect.routes.js'
 
 bootstrap().catch((err) => {
@@ -22,8 +22,8 @@ async function bootstrap() {
   }
 
   const redisClient = new Redis(redisOptions)
-  const redisRepository = new RedisRepository(redisClient)
-  const shortenerService = new ShortenerService(redisRepository)
+  const redisRepository = new RedisShortUrlRepository(redisClient)
+  const shortenerService = new ShortenerService(redisRepository, config.baseUrl)
   const shortenerController = new ShortenerController(shortenerService)
   const apiRouter = createV1Router(createShortenerRouter(shortenerController))
 

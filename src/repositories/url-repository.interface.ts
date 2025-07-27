@@ -1,4 +1,6 @@
+import { ShortUrl } from '../domain/entities/short-url.js'
+
 export interface IUrlRepository {
-  save(id: string, url: string): Promise<string>
-  findById(id: string): Promise<string | null>
+  save(entity: ShortUrl): Promise<void>
+  findById(id: string): Promise<ShortUrl | null>
 }
