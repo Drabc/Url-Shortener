@@ -13,8 +13,8 @@ export class ShortenerController {
   }
 
   public async resolve(req: Request, res: Response) {
-    const id = req.params.id
-    const redirectUrl = await this.shortenerService.resolveUrl(id)
+    const code = req.params.code
+    const redirectUrl = await this.shortenerService.resolveUrl(code)
     res.redirect(redirectUrl)
   }
 }
