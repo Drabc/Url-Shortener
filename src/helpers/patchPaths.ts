@@ -5,6 +5,12 @@ export function patchPaths(
   prefix: string,
 ): OpenAPIV3.PathsObject {
   return Object.fromEntries(
-    Object.entries(orignal).map(([path, def]) => [`${prefix}${path}`, def]),
+    Object.entries(orignal).map(([path, def]) => {
+      // custom tag to exclude from patching
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (def as any)['x-unversioned']
+        ? [path, def]
+        : [`${prefix}${path}`, def]
+    }),
   )
 }
