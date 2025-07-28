@@ -7,6 +7,7 @@ const env = cleanEnv(process.env, {
   REDIS_PORT: port({ default: 6379 }),
   REDIS_USERNAME: str(),
   REDIS_PASSWORD: str(),
+  NODE_ENV: str(),
 })
 
 export const config = {
@@ -16,4 +17,5 @@ export const config = {
   redisPort: env.REDIS_PORT,
   redisUsername: env.REDIS_USERNAME,
   redisPassword: env.REDIS_PASSWORD,
+  isDev: env.NODE_ENV === 'development',
 }
