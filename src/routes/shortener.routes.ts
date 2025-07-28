@@ -38,22 +38,7 @@ export function createShortenerRouter(controller: ShortenerController): Router {
    *        content:
    *          application/json:
    *            schema:
-   *              type: object
-   *              properties:
-   *                error:
-   *                  type: object
-   *                  properties:
-   *                    type:
-   *                      type: string
-   *                    code:
-   *                      type: integer
-   *                    message:
-   *                      type: string
-   *                    details:
-   *                      type: object
-   *                      properties:
-   *                        url:
-   *                          type: string
+   *              $ref: '#/components/schemas/ErrorFormat'
    *
    */
   shortenerRouter.post('/shorten', controller.shorten.bind(controller))

@@ -15,6 +15,29 @@ export const swaggerSpec = swaggerJSDoc({
       description: 'A simple URL shortener API built with Node.js and Express',
     },
     servers: [{ url: config.baseUrl }],
+    components: {
+      schemas: {
+        ErrorFormat: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'object',
+              properties: {
+                type: { type: 'string' },
+                code: { type: 'integer' },
+                message: { type: 'string' },
+                details: {
+                  type: 'object',
+                  properties: {
+                    url: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   apis: ['./src/routes/**/*.ts'],
 }) as OpenAPIV3.Document
