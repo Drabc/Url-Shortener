@@ -4,9 +4,9 @@ import { createApp } from './app.js'
 import { ShortenerController } from './controllers/shortener.controller.js'
 import { createShortenerRouter } from './routes/shortener.routes.js'
 import { createV1Router } from './routes/v1.routes.js'
-import { ShortenerService } from './services/shortener.services.js'
+import { ShortenerService } from './application/services/shortener.services.js'
 import { config } from './config/config.js'
-import { RedisShortUrlRepository } from './repositories/redis-short-url.repository.js'
+import { RedisShortUrlRepository } from './infrastructure/repositories/redis-short-url.repository.js'
 import { createRedirectRoutes } from './routes/redirect.routes.js'
 
 bootstrap().catch((err) => {
