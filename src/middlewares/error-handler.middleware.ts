@@ -20,7 +20,7 @@ export function errorHandler(
 
   let normalizedError
 
-  // Refactor when more errors are added
+  // TODO: Add new errors and refactor this logic
   if (err instanceof ApiError) {
     normalizedError = err
   } else if (err instanceof InvalidUrlError) {
