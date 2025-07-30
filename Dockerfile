@@ -20,8 +20,19 @@ RUN if [ "$NODE_ENV" = "production" ]; then \
 ###############################################################################
 FROM deps AS dev
 
-RUN apk add --no-cache git
-RUN apk add --no-cache openssh-client
+# install bash, git, and the completion/prompt packages
+RUN apk add --no-cache \
+      bash \
+      git \
+      bash-completion \
+      git-bash-completion \
+      git-prompt \
+      openssh-client
+
+# switch root’s shell from ash → bash
+RUN sed -i 's#/bin/ash#/bin/bash#' /etc/passwd
+
+COPY .devcontainer/.bashrc /root/.bashrc
 
 WORKDIR /var/www/app
 

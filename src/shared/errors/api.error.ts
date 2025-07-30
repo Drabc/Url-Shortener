@@ -1,11 +1,15 @@
+import { ErrorType } from './error-types.js'
+
 export class ApiError extends Error {
-  public readonly statusCode: number
-
-  constructor(message: string, statusCode: number = 500, cause?: Error) {
+  constructor(
+    message: string,
+    public readonly statusCode: number = 500,
+    public readonly type: ErrorType,
+    cause?: Error,
+  ) {
     super(message)
-    this.statusCode = statusCode
 
-    if(cause) {
+    if (cause) {
       this.stack = cause.stack
     }
   }

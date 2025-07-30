@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+
 import { ShortenerService } from '../services/shortener.services.js'
 
 export class ShortenerController {
@@ -6,13 +7,14 @@ export class ShortenerController {
 
   public async shorten(req: Request, res: Response) {
     const { url } = req.body
-    // use response formatter
-    res.status(201).send({ url: await this.shortenerService.shortenUrl(url) })
+    res
+      .status(201)
+      .send({ shortUrl: await this.shortenerService.shortenUrl(url) })
   }
 
   public async resolve(req: Request, res: Response) {
-    const id = req.params.id
-    const redirectUrl = await this.shortenerService.resolveUrl(id)
+    const code = req.params.code
+    const redirectUrl = await this.shortenerService.resolveUrl(code)
     res.redirect(redirectUrl)
   }
 }
