@@ -2,6 +2,7 @@ import typescriptParser from '@typescript-eslint/parser'
 import typescriptPlugin from '@typescript-eslint/eslint-plugin'
 import importPlugin from 'eslint-plugin-import'
 import prettierPlugin from 'eslint-plugin-prettier'
+import jestPlugin from 'eslint-plugin-jest'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
@@ -24,6 +25,7 @@ export default defineConfig([
       '@typescript-eslint': typescriptPlugin,
       import: importPlugin,
       prettier: prettierPlugin,
+      jest: jestPlugin,
     },
 
     rules: {
