@@ -54,7 +54,7 @@ describe('ShortenerService', () => {
       )
     })
 
-    it('should throw MaxCodeGenarationAttemptsError after max attempts', async () => {
+    it('should throw MaxCodeGenerationAttemptsError after max attempts', async () => {
       mockUrlStorageClient.save.mockRejectedValue(new CodeExistsError(nanoid))
       await expect(service.shortenUrl(url)).rejects.toThrow(
         MaxCodeGenerationAttemptsError,

@@ -1,5 +1,5 @@
 export class CodeExistsError extends Error {
-  constructor(code: string) {
-    super(`Short URL code "${code}" already exists.`)
+  constructor(shortCode: string) {
+    super(`Short URL code "${shortCode}" already exists.`)
   }
 }

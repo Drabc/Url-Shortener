@@ -25,7 +25,7 @@ export function createShortenerRouter(controller: ShortenerController): Router {
    *                 type: string
    *    responses:
    *      '201':
-   *        description: The shorten URL
+   *        description: The shortened URL
    *        content:
    *          application/json:
    *            schema:
