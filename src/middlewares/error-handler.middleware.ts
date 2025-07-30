@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from 'express'
 import { ApiError } from '../shared/errors/api.error.js'
 import { InvalidUrlError } from '../domain/errors/invalid-url.error.js'
 import { ErrorType } from '../shared/errors/error-types.js'
+import { logger } from '../infrastructure/logging/logger.js'
 
 export function errorHandler(
   err: Error,
@@ -15,8 +16,7 @@ export function errorHandler(
     return next(err)
   }
 
-  // Temporary: integrate pino
-  console.error(err)
+  logger.error(err)
 
   let normalizedError
 
