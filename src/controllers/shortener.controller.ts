@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 
-import { ShortenerService } from '../services/shortener.services.js'
+import { ShortenerService } from '../application/services/shortener.service.js'
 
 export class ShortenerController {
   constructor(private shortenerService: ShortenerService) {}

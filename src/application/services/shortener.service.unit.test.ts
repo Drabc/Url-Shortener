@@ -4,7 +4,7 @@ import { IUrlRepository } from '../../domain/repositories/url-repository.interfa
 import { NotFoundError } from '../../shared/errors/not-found.error.js'
 import { MaxCodeGenerationAttemptsError } from '../errors/max-code-generation-attempts.error.js'
 
-import { ShortenerService } from './shortener.services.js'
+import { ShortenerService } from './shortener.service.js'
 
 const nanoid: string = 'abc123'
 // Needs to be prefix with mock to denote it is lazily evaluated
