@@ -4,6 +4,7 @@ import { ApiError } from '../shared/errors/api.error.js'
 import { InvalidUrlError } from '../domain/errors/invalid-url.error.js'
 import { ErrorType } from '../shared/errors/error-types.js'
 import { logger } from '../infrastructure/logging/logger.js'
+import { config } from '../config/config.js'
 
 export function errorHandler(
   err: Error,
@@ -40,14 +41,15 @@ export function errorHandler(
     )
   }
 
-  // Temporary for dev. Use different error fomatter based on env
+  // Abstract if setup gets more complicated
+  const stack = config.isDev ? normalizedError.stack?.split('\n') : undefined
   res.status(normalizedError.statusCode).json({
     error: {
       type: normalizedError.type,
       code: normalizedError.statusCode,
       message: normalizedError.message,
       details: {
-        stack: normalizedError.stack?.split('\n'),
+        stack,
         url: req.originalUrl,
       },
     },
