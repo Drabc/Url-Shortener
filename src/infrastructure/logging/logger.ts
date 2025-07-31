@@ -13,7 +13,7 @@ const transport = config.isDev
       options: {
         colorize: true,
         translateTime: true,
-        ignore: 'pid, hostname',
+        ignore: 'pid,hostname',
       },
     }
   : undefined
