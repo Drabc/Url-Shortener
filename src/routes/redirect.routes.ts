@@ -2,6 +2,11 @@ import { Router } from 'express'
 
 import { ShortenerController } from '../controllers/shortener.controller.js'
 
+/**
+ * Creates a router for redirect operations.
+ * @param {ShortenerController} shortenerController - The controller to handle URL resolution logic.
+ * @returns {Router} - The configured router for redirects.
+ */
 export function createRedirectRoutes(
   shortenerController: ShortenerController,
 ): Router {

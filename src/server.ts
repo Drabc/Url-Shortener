@@ -15,6 +15,9 @@ bootstrap().catch((err) => {
   process.exit(1)
 })
 
+/**
+ * Bootstraps the application
+ */
 async function bootstrap() {
   const redisOptions: RedisOptions = {
     host: config.redisHost,

@@ -7,6 +7,11 @@ import { ShortUrl } from '../../domain/entities/short-url.js'
 import { CodeExistsError } from '../../infrastructure/errors/code-exists.error.js'
 import { MaxCodeGenerationAttemptsError } from '../errors/max-code-generation-attempts.error.js'
 
+/**
+ * Service for URL shortening and resolution.
+ * @param {IUrlRepository} urlStorageClient - Repository for storing and retrieving short URLs.
+ * @param {string} baseUrl - The base URL for the shortened links.
+ */
 export class ShortenerService {
   private nanoid = customAlphabet(
     '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -19,6 +24,15 @@ export class ShortenerService {
     private baseUrl: string,
   ) {}
 
+  /**
+   * Attempts to generate and store a unique short code for the given URL, retrying on collisions.
+   * @param {string} originalUrl - The full URL to shorten. Must be a valid URL string.
+   * @returns {Promise<string>} A promise that resolves to the full shortened URL (including base URL and code).
+   * @throws {MaxCodeGenerationAttemptsError}
+   *   Thrown if a unique code could not be generated within the configured maximum attempts.
+   * @throws {Error}
+   *   Re-throws any unexpected errors from the storage client (other than code-collision errors).
+   */
   async shortenUrl(originalUrl: string): Promise<string> {
     for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
       const code = this.nanoid()
@@ -37,6 +51,13 @@ export class ShortenerService {
     throw new MaxCodeGenerationAttemptsError(this.maxAttempts)
   }
 
+  /**
+   * Resolves a short code to its original URL.
+   * @param {string} code - The short code to resolve.
+   * @returns {Promise<string>} A promise that resolves to the original URL.
+   * @throws {NotFoundError}
+   *   Thrown if the code does not exist in the storage.
+   */
   async resolveUrl(code: string): Promise<string> {
     const shortUrl = await this.urlStorageClient.findById(code)
     if (!shortUrl) {

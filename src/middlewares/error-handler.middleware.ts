@@ -6,12 +6,21 @@ import { ErrorType } from '../shared/errors/error-types.js'
 import { logger } from '../infrastructure/logging/logger.js'
 import { config } from '../config/config.js'
 
+/**
+ * Middleware for handling errors in the application.
+ * It normalizes errors and sends a structured response to the client.
+ * @param {Error} err - The error object thrown by the application.
+ * @param {Request} req - The Express request object.
+ * @param {Response} res - The Express response object.
+ * @param {NextFunction} next - The next middleware function in the stack.
+ * @returns {void}
+ */
 export function errorHandler(
   err: Error,
   req: Request,
   res: Response,
   next: NextFunction,
-) {
+): void {
   // If headers already sent, delegate to default Express handler to avoid double‑send exception
   if (res.headersSent) {
     return next(err)
@@ -25,19 +34,19 @@ export function errorHandler(
   if (err instanceof ApiError) {
     normalizedError = err
   } else if (err instanceof InvalidUrlError) {
-    normalizedError = new ApiError(err.message, 400, ErrorType.INVALID_URL, err)
+    normalizedError = new ApiError(err.message, ErrorType.INVALID_URL, 400, err)
   } else if (err instanceof Error) {
     normalizedError = new ApiError(
       err.message,
-      500,
       ErrorType.INTERNAL_SERVER_ERROR,
+      500,
       err,
     )
   } else {
     normalizedError = new ApiError(
       'Internal Server Error',
-      500,
       ErrorType.INTERNAL_SERVER_ERROR,
+      500,
     )
   }
 
