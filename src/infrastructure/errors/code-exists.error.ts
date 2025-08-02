@@ -1,5 +1,5 @@
 /**
- * Persistance Error thrown when a short URL code already exists.
+ * Persistence Error thrown when a short URL code already exists.
  * @param {string} shortCode - The short URL code that already exists.
  * @augments {Error}
  */
