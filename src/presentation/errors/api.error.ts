@@ -1,4 +1,4 @@
-import { ErrorType } from './error-types.js'
+import { ErrorType } from '@presentation/errors/error-types.js'
 
 /**
  * Represents an API error with a message, status code, and type.

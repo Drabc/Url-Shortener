@@ -18,4 +18,5 @@ export const config = {
   redisUsername: env.REDIS_USERNAME,
   redisPassword: env.REDIS_PASSWORD,
   isDev: env.NODE_ENV === 'development',
+  rootDir: process.cwd(), // Can be replaced by a more robust solution
 }

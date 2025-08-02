@@ -1,14 +1,14 @@
 import { RedisOptions, Redis } from 'ioredis'
 
-import { createApp } from './app.js'
-import { ShortenerController } from './controllers/shortener.controller.js'
-import { createShortenerRouter } from './routes/shortener.routes.js'
-import { createV1Router } from './routes/v1.routes.js'
-import { ShortenerService } from './application/services/shortener.service.js'
-import { config } from './config/config.js'
-import { RedisShortUrlRepository } from './infrastructure/repositories/redis-short-url.repository.js'
-import { createRedirectRoutes } from './routes/redirect.routes.js'
-import { logger } from './infrastructure/logging/logger.js'
+import { createApp } from '@presentation/app.js'
+import { ShortenerController } from '@presentation/controllers/shortener.controller.js'
+import { createShortenerRouter } from '@presentation/routes/shortener.routes.js'
+import { createV1Router } from '@presentation/routes/v1.routes.js'
+import { createRedirectRoutes } from '@presentation/routes/redirect.routes.js'
+import { ShortenerService } from '@application/services/shortener.service.js'
+import { config } from '@infrastructure/config/config.js'
+import { RedisShortUrlRepository } from '@infrastructure/repositories/redis-short-url.repository.js'
+import { logger } from '@infrastructure/logging/logger.js'
 
 bootstrap().catch((err) => {
   logger.error(err)

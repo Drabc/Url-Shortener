@@ -1,9 +1,11 @@
 import swaggerJSDoc from 'swagger-jsdoc'
 import { OpenAPIV3 } from 'openapi-types'
 
-import { config } from './config/config.js'
+import { config } from '@infrastructure/config/config.js'
 
-const pkg = await import('../package.json', { assert: { type: 'json' } })
+const pkg = await import(`${config.rootDir}/package.json`, {
+  assert: { type: 'json' },
+})
 const version = pkg.default.version as string
 
 export const swaggerSpec = swaggerJSDoc({
@@ -45,5 +47,5 @@ export const swaggerSpec = swaggerJSDoc({
       },
     },
   },
-  apis: ['./src/routes/**/*.ts'],
+  apis: [`${config.rootDir}/src/presentation/routes/**/*.ts`],
 }) as OpenAPIV3.Document

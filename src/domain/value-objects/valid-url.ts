@@ -1,4 +1,4 @@
-import { InvalidUrlError } from '../errors/invalid-url.error.js'
+import { InvalidUrlError } from '@domain/errors/invalid-url.error.js'
 
 /**
  * Value object representing a valid URL.

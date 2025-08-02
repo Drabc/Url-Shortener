@@ -3,9 +3,9 @@ import swaggerUi from 'swagger-ui-express'
 import OpenApiValidator from 'express-openapi-validator'
 import { OpenAPIV3 } from 'openapi-types'
 
-import { errorHandler } from './middlewares/error-handler.middleware.js'
-import { swaggerSpec } from './swagger.js'
-import { patchPaths } from './helpers/patchPaths.js'
+import { errorHandler } from '@presentation/middlewares/error-handler.middleware.js'
+import { swaggerSpec } from '@presentation/docs/swagger.js'
+import { patchPaths } from '@presentation/docs/patchPaths.js'
 
 interface AppDeps {
   apiRouter: Router

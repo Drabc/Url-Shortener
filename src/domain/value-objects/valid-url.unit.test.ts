@@ -1,6 +1,5 @@
-import { InvalidUrlError } from '../errors/invalid-url.error.js'
-
-import { ValidUrl } from './valid-url.js'
+import { InvalidUrlError } from '@domain/errors/invalid-url.error.js'
+import { ValidUrl } from '@domain/value-objects/valid-url.js'
 
 describe('ValidUrl', () => {
   it('should not throw an error when a valid url is provided', () => {
