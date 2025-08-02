@@ -3,6 +3,7 @@ import typescriptPlugin from '@typescript-eslint/eslint-plugin'
 import importPlugin from 'eslint-plugin-import'
 import prettierPlugin from 'eslint-plugin-prettier'
 import jestPlugin from 'eslint-plugin-jest'
+import jsdocPlugin from 'eslint-plugin-jsdoc'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
@@ -26,6 +27,7 @@ export default defineConfig([
       import: importPlugin,
       prettier: prettierPlugin,
       jest: jestPlugin,
+      jsdoc: jsdocPlugin,
     },
 
     rules: {
@@ -33,6 +35,8 @@ export default defineConfig([
       ...typescriptPlugin.configs.recommended.rules,
       ...importPlugin.configs.recommended.rules,
       ...prettierPlugin.configs.recommended.rules,
+      ...jestPlugin.configs.recommended.rules,
+      ...jsdocPlugin.configs.recommended.rules,
 
       // overrides
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -40,8 +44,19 @@ export default defineConfig([
         groups: ['builtin','external','internal','parent','sibling','index'],
         'newlines-between': 'always'
       }],
-      'quotes': ['error', 'single', { avoidEscape: true }],
-      'semi': ['error', 'never'],
+      quotes: ['error', 'single', { avoidEscape: true }],
+      semi: ['error', 'never'],
+      'jsdoc/require-jsdoc': ['warn',{
+        contexts: [
+          'ClassDeclaration',
+          'FunctionDeclaration',
+          'MethodDefinition[kind!="constructor"]'
+        ]
+      }],
+      // Add custom JSDoc tags for OpenAPI/Swagger
+      'jsdoc/check-tag-names': ['warn', {
+        definedTags: ['openapi','swagger']
+      }]
     },
 
     settings: {

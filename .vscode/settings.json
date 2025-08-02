@@ -1,5 +1,7 @@
 {
   "eslint.useFlatConfig": true,
   // for linux eol
-  "files.eol": "\n"
+  "files.eol": "\n",
+
+  "typescript.suggest.completeFunctionCalls": true,
 }

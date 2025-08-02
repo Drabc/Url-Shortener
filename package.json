@@ -12,6 +12,7 @@
     "lint": "eslint src --cache",
     "start": "node dist/server.js",
     "start:dev": "tsx watch src/server.ts",
+    "test": "jest --no-coverage",
     "test:watch": "jest --watch --no-coverage"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jest": "^29.0.1",
+    "eslint-plugin-jsdoc": "^52.0.1",
     "eslint-plugin-prettier": "^5.5.3",
     "jest": "^30.0.5",
     "nodemon": "^3.1.10",
