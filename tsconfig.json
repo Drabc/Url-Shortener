@@ -3,9 +3,17 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    "baseUrl": "src",
+    "paths": {
+      "@domain/*": ["domain/*"],
+      "@application/*": ["application/*"],
+      "@infrastructure/*": ["infrastructure/*"],
+      "@presentation/*": ["presentation/*"],
+      "@shared/*": ["shared/*"]
+    },
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
+    "declaration": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
