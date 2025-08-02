@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 
-import { ShortenerService } from '../application/services/shortener.service.js'
+import { ShortenerService } from '@application/services/shortener.service.js'
 
 /**
  * Controller for handling URL shortening and resolution requests.

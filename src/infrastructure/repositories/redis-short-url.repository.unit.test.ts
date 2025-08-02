@@ -1,9 +1,8 @@
 import { Redis } from 'ioredis'
 
-import { ShortUrl } from '../../domain/entities/short-url.js'
-import { CodeExistsError } from '../errors/code-exists.error.js'
-
-import { RedisShortUrlRepository } from './redis-short-url.repository.js'
+import { ShortUrl } from '@domain/entities/short-url.js'
+import { CodeExistsError } from '@infrastructure/errors/code-exists.error.js'
+import { RedisShortUrlRepository } from '@infrastructure/repositories/redis-short-url.repository.js'
 
 describe('RedisShortUrlRepository', () => {
   const code: string = 'abc123'

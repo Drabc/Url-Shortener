@@ -1,10 +1,9 @@
-import { ShortUrl } from '../../domain/entities/short-url.js'
-import { CodeExistsError } from '../../infrastructure/errors/code-exists.error.js'
-import { IUrlRepository } from '../../domain/repositories/url-repository.interface.js'
-import { NotFoundError } from '../../shared/errors/not-found.error.js'
-import { MaxCodeGenerationAttemptsError } from '../errors/max-code-generation-attempts.error.js'
-
-import { ShortenerService } from './shortener.service.js'
+import { ShortUrl } from '@domain/entities/short-url.js'
+import { CodeExistsError } from '@infrastructure/errors/code-exists.error.js'
+import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { NotFoundError } from '@shared/errors/not-found.error.js'
+import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
+import { ShortenerService } from '@application/services/shortener.service.js'
 
 const nanoid: string = 'abc123'
 // Needs to be prefix with mock to denote it is lazily evaluated
