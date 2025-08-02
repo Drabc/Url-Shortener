@@ -2,11 +2,10 @@
 
 ## Backend
 
-- Add proper logger
 - Add JS Docs
 - Add project level imports
-- Figure out a way to dynamically load configs based on env (if redis, only require redis configs)
 - Add mongoDB repo
+- Figure out a way to dynamically load configs based on env (if redis, only require redis configs)
 - Add postgres repo
 - Add file system repo
 - Add integration tests

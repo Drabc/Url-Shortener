@@ -4,16 +4,20 @@ import { createApp } from './app.js'
 import { ShortenerController } from './controllers/shortener.controller.js'
 import { createShortenerRouter } from './routes/shortener.routes.js'
 import { createV1Router } from './routes/v1.routes.js'
-import { ShortenerService } from './application/services/shortener.services.js'
+import { ShortenerService } from './application/services/shortener.service.js'
 import { config } from './config/config.js'
 import { RedisShortUrlRepository } from './infrastructure/repositories/redis-short-url.repository.js'
 import { createRedirectRoutes } from './routes/redirect.routes.js'
+import { logger } from './infrastructure/logging/logger.js'
 
 bootstrap().catch((err) => {
-  console.error(err)
+  logger.error(err)
   process.exit(1)
 })
 
+/**
+ * Bootstraps the application
+ */
 async function bootstrap() {
   const redisOptions: RedisOptions = {
     host: config.redisHost,
@@ -32,17 +36,17 @@ async function bootstrap() {
   const app = createApp({ apiRouter, redirectRouter })
 
   const server = app.listen(config.port, () => {
-    console.log(`Server is running on port ${config.port}`)
+    logger.info(`Server is running on port ${config.port}`)
   })
 
   const shutdown = async (signal: string, code = 0) => {
-    console.info(`${signal} received — shutting down...`)
-    server.close(() => console.info('HTTP server closed'))
+    logger.info(`${signal} received — shutting down...`)
+    server.close(() => logger.info('HTTP server closed'))
     try {
       await redisClient.quit()
-      console.info('Redis client disconnected')
+      logger.info('Redis client disconnected')
     } catch (e) {
-      console.error({ e }, 'Error during Redis shutdown')
+      logger.error({ e }, 'Error during Redis shutdown')
     }
     process.exit(code)
   }
@@ -51,12 +55,12 @@ async function bootstrap() {
   process.on('SIGTERM', () => shutdown('SIGTERM', 0))
 
   process.on('unhandledRejection', (reason) => {
-    console.error('Unhandled Rejection:', reason)
+    logger.error('Unhandled Rejection:', reason)
     shutdown('unhandledRejection', 1)
   })
 
   process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err)
+    logger.error('Uncaught Exception:', err)
     shutdown('uncaughtException', 1)
   })
 }

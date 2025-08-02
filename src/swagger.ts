@@ -32,7 +32,7 @@ export const swaggerSpec = swaggerJSDoc({
                     url: { type: 'string' },
                     ...(config.isDev && {
                       stack: {
-                        type: 'string',
+                        type: 'array',
                         description: 'Full stack trace (Dev only)',
                       },
                     }),

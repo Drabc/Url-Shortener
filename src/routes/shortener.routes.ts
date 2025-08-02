@@ -2,6 +2,11 @@ import { Router } from 'express'
 
 import { ShortenerController } from '../controllers/shortener.controller.js'
 
+/**
+ * Creates a router for URL shortening operations.
+ * @param {ShortenerController} controller - The controller to handle URL shortening logic.
+ * @returns {Router} - The configured router for URL shortening.
+ */
 export function createShortenerRouter(controller: ShortenerController): Router {
   const shortenerRouter = Router()
 
@@ -39,7 +44,6 @@ export function createShortenerRouter(controller: ShortenerController): Router {
    *          application/json:
    *            schema:
    *              $ref: '#/components/schemas/ErrorFormat'
-   *
    */
   shortenerRouter.post('/shorten', controller.shorten.bind(controller))
 

@@ -12,6 +12,11 @@ interface AppDeps {
   redirectRouter: Router
 }
 
+/**
+ * Creates an Express application with API and redirect routes.
+ * @param {AppDeps} deps - The dependencies for the application.
+ * @returns {Express} - The configured Express application.
+ */
 export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
   const app: Express = express()
 

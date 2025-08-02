@@ -1,5 +1,11 @@
 import { InvalidUrlError } from '../errors/invalid-url.error.js'
 
+/**
+ * Value object representing a valid URL.
+ * Validates the URL format and ensures it starts with 'http' or 'https'.
+ * @param {string} value - The URL string to validate.
+ * @throws {InvalidUrlError} Thrown if the URL is invalid.
+ */
 export class ValidUrl {
   constructor(public readonly value: string) {
     if (!value) throw new InvalidUrlError('Must Not Be Empty')
