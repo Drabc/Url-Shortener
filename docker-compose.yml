@@ -8,6 +8,7 @@ services:
     env_file: .env
     depends_on:
       - redis
+      - mongo
 
   redis:
     image: redis:8.2-rc1-alpine3.22
@@ -17,6 +18,12 @@ services:
     env_file: .env
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
+
+  mongo:
+    image: mongo
+    env_file: .env
+    ports:
+    - "27017:27017"
 
 volumes:
   redis-data:
