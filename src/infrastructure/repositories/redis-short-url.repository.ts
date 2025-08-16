@@ -3,7 +3,7 @@ import { Redis } from 'ioredis'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
-import { CodeExistsError } from '@infrastructure/errors/code-exists.error.js'
+import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 
 /**
  * Redis implementation of the URL repository interface for storing and retrieving short URLs.

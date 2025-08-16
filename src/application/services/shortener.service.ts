@@ -1,7 +1,7 @@
 import { customAlphabet } from 'nanoid'
 
 import { NotFoundError } from '@presentation/errors/not-found.error.js'
-import { CodeExistsError } from '@infrastructure/errors/code-exists.error.js'
+import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { ShortUrl } from '@domain/entities/short-url.js'

@@ -8,3 +8,13 @@ export class CodeExistsError extends Error {
     super(`Short URL code "${shortCode}" already exists.`)
   }
 }
+
+/**
+ * Persistence Error thrown when attempting to change an immutable short URL code.
+ * @augments {Error}
+ */
+export class ImmutableCodeError extends Error {
+  constructor() {
+    super('Short URL codes are immutable and cannot be changed once set.')
+  }
+}
