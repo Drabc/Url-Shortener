@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { Logger, LoggerOptions, pino } from 'pino'
 
 import { config } from '@infrastructure/config/config.js'

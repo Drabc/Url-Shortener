@@ -21,7 +21,7 @@ export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
   const app: Express = express()
 
   // Augment swagger spec with API version
-  // Allows to define swagger-jsdocs without specifiying api version
+  // Allows to define swagger-jsdoc without specifying api version
   const spec: OpenAPIV3.Document = { ...swaggerSpec }
   spec.paths = patchPaths(spec.paths, '/api/v1')
 

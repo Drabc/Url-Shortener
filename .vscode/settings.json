@@ -5,6 +5,8 @@
 
   "typescript.suggest.completeFunctionCalls": true,
   "cSpell.words": [
-    "envalid", "INITDB"
+    "APIV",
+    "envalid",
+    "INITDB"
   ],
 }
