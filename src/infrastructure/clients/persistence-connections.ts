@@ -31,11 +31,10 @@ export class PersistenceConnections {
   private readonly registry: ClientEntries
 
   public constructor(
-    private readonly cfg: typeof config,
     private readonly logger: Logger,
     registry: ClientEntries,
   ) {
-    this.clientKeys = cfg.clientTypes
+    this.clientKeys = Object.keys(registry) as ClientKey[]
     this.registry = registry
   }
 
@@ -100,7 +99,7 @@ export async function createPersistenceConnections(
     }
   }
 
-  return new PersistenceConnections(cfg, logger, registry)
+  return new PersistenceConnections(logger, registry)
 }
 
 /**
