@@ -30,7 +30,7 @@ type MigrationDoc = {
  */
 export class MongoMigrationPlan extends MigrationPlan<Db> {
   private static readonly LOCK_KEY = 'mongo'
-  // Todo: Create a small lock class when other plas are added
+  // Todo: Create a small lock class when other plans are added
   private static readonly DEFAULT_LEASE_MS = 10 * 60_000
 
   private lockAcquired: boolean = false
