@@ -14,13 +14,24 @@ import {
   LatestMigrationFileNotFoundError,
 } from '@infrastructure/errors/migration.error.js'
 import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
-import { MongoClientKey } from '@infrastructure/clients/types.js'
+import type {
+  ClientMap,
+  MongoClientKey,
+} from '@infrastructure/clients/types.js'
 import { MONGO_CLIENT } from '@infrastructure/constants.js'
 
 // OK to use sync as this happens before server starts listening
 type FsLike = {
   readFileSync: typeof readFileSync
   readdirSync: typeof readdirSync
+}
+
+// Generic importer you can reuse elsewhere
+type ImporterLike = <T = unknown>(specifier: string) => Promise<T>
+
+// Shape of a migration module exporting a default factory
+type MigrationFactoryModule<T extends Db> = {
+  default: (client: T, id: string) => Migration<T>
 }
 
 const SUPPORTED_TYPES = ['mongo']
@@ -36,6 +47,7 @@ export class MigrationPlanner {
   constructor(
     private readonly migrationPath: string,
     private readonly fs: FsLike = { readdirSync, readFileSync },
+    private readonly importer: ImporterLike = (s) => import(s),
   ) {}
 
   /**
@@ -45,6 +57,9 @@ export class MigrationPlanner {
    * various database types.
    * @returns {Promise<MigrationPlan<Db>[]>} A promise that resolves to an array of migration plans.
    * Each plan corresponds to a supported database type with available migrations.
+   * @throws {LatestMigrationFileNotFoundError} If the latest migration file cannot be found for a client type.
+   * @throws {InvalidMigrationFilenameError} If a migration file has an invalid filename format.
+   * @throws {Error} If unable to import a migration file
    * @todo
    * This method currently only supports MongoDB migrations. Future implementations
    * should extend this to support other database types as needed.
@@ -59,12 +74,17 @@ export class MigrationPlanner {
     )
 
     const plans = await Promise.all(
-      // Don't spect this to get bigger, but abstract if it does
+      // Don't expect this to get bigger, but abstract if it does
       activeClientKeys.map(async (supportedClientKey: SupportedType) => {
         if (supportedClientKey == MONGO_CLIENT) {
           const client = connections.get<MongoClientKey>(supportedClientKey)
+          const latestMigrationId = await this.findLatestMongoMigration(client)
           return new MongoMigrationPlan(
-            await this.getMigrations<Db>(supportedClientKey, client),
+            await this.getMigrations<Db>(
+              supportedClientKey,
+              client,
+              latestMigrationId,
+            ),
             client,
           )
         }
@@ -74,34 +94,28 @@ export class MigrationPlanner {
     return plans.filter((plan) => !!plan)
   }
 
-  /* eslint-disable jsdoc/no-undefined-types */
   /**
    * Retrieves migration files for a specific database client type.
    * It reads the migration directory for the given client type,
    * imports the migration files, and returns them as an array of Migration objects.
    * @param {SupportedType} clientType - The type of database client (e.g., 'mongo').
-   * @param {keyof Clients} client - The client instance from the client registry.
-   * @returns {Promise<Migration<T>[]>} A promise that resolves to an array of Migration objects
+   * @param {keyof ClientMap} client - The client instance from the client registry.
+   * @param {string | null} latestMigrationId - The ID of the latest applied migration,
+   * @returns {Promise<Migration<keyof ClientMap>[]>} A promise that resolves to an array of Migration objects
    * for the specified client type.
    */
   private async getMigrations<T extends Db>(
     clientType: SupportedType,
     client: T,
+    latestMigrationId: string | null,
   ): Promise<Migration<T>[]> {
-    const latestMigration = await this.findLastestMongoMigration(client)
     const clientMigrationPath = join(this.migrationPath, clientType)
-    const files = this.fs
-      .readdirSync(clientMigrationPath, {
-        encoding: 'utf-8',
-        withFileTypes: true,
-      })
-      .filter((f) => f.isFile() && f.name.endsWith('.ts'))
-      .sort((a, b) => a.name.localeCompare(b.name))
+    const files = this.getValidMigrationFiles(clientMigrationPath)
 
     let startIndex = 0
 
-    if (latestMigration) {
-      const latestMigrationFileName = `${latestMigration}.ts`
+    if (latestMigrationId) {
+      const latestMigrationFileName = `${latestMigrationId}.ts`
       const foundIndex = this.binarySearchMigrationIndex(
         files,
         latestMigrationFileName,
@@ -119,22 +133,48 @@ export class MigrationPlanner {
 
     return Promise.all(
       migrationsToRun.map(async (fileName) => {
-        const migrationModule = await import(
-          pathToFileURL(join(clientMigrationPath, fileName.name)).href
-        )
+        const href = pathToFileURL(
+          join(clientMigrationPath, fileName.name),
+        ).href
+        const migrationModule =
+          await this.importer<MigrationFactoryModule<T>>(href)
         const migrationId = fileName.name.replace('.ts', '')
-        return migrationModule.default(client, migrationId) as Migration<T>
+        return migrationModule.default(client, migrationId)
       }),
     )
+  }
+
+  /**
+   * Reads, filters, and sorts migration files for a client path.
+   * @param {string} clientMigrationPath Absolute path to the client migrations directory.
+   * @returns {Dirent[]} Sorted file entries representing valid migration files.
+   */
+  private getValidMigrationFiles(clientMigrationPath: string): Dirent[] {
+    return this.fs
+      .readdirSync(clientMigrationPath, {
+        encoding: 'utf-8',
+        withFileTypes: true,
+      })
+      .filter((f) => f.isFile() && f.name.endsWith('.ts'))
+      .map((file) => {
+        const match = file.name.match(/^(\d+)-/)
+
+        if (match === null) {
+          throw new InvalidMigrationFilenameError(file.name)
+        }
+
+        return file
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
   }
 
   /**
    * Finds the latest applied migration in the MongoDB 'migrations' collection.
    * @param {Db} db - The MongoDB database instance.
    * @returns {Promise<string | null>} The migration ID of the latest migration, or null if none found.
-   * @todo create a small DOA to abstract migration fetching
+   * @todo Move to separate file if too many DB specific methods accumulate here
    */
-  private async findLastestMongoMigration(db: Db): Promise<string | null> {
+  private async findLatestMongoMigration(db: Db): Promise<string | null> {
     const migrationsCollection = db.collection('migrations')
     const latestMigration = await migrationsCollection
       .find()
