@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.27.1",
+    "@stylistic/eslint-plugin": "^5.2.3",
     "@tsconfig/node24": "^24.0.1",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
