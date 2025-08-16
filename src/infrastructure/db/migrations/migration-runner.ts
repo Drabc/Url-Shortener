@@ -31,6 +31,7 @@ export class MigrationRunner {
     for (const plan of plans) {
       this.logger.info(`Starting ${plan.displayName}`)
       await plan.acquireLock()
+
       try {
         for (const migration of plan.migrations) {
           this.logger.info(`Running migration: ${migration.id}`)
