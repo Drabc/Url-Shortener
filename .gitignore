@@ -7,3 +7,7 @@ docker-compose.override.yml
 
 #eslint
 .eslintcache
+
+# Rules
+.cursor/rules
+.github/instructions

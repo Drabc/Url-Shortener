@@ -2,8 +2,6 @@
 
 ## Backend
 
-- Add JS Docs
-- Add project level imports
 - Add mongoDB repo
 - Figure out a way to dynamically load configs based on env (if redis, only require redis configs)
 - Add postgres repo

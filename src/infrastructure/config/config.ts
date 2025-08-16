@@ -1,20 +1,13 @@
 import { join } from 'path'
 
 import { cleanEnv, port, str, json } from 'envalid'
-import { Redis } from 'ioredis'
-import { Db } from 'mongodb'
 
-export type Clients = {
-  mongo: Db
-  redis: Redis
-}
-
-export type ClientTypes = 'mongo' | 'redis'
+import type { ClientKey } from '@infrastructure/clients/types.js'
 
 const env = cleanEnv(process.env, {
   PORT: port({ default: 3000 }),
   BASE_URL: str({ default: 'localhost:3000' }),
-  CLIENT_TYPES: json<ClientTypes[]>({
+  CLIENT_TYPES: json<ClientKey[]>({
     desc: 'What clients would be used. Determines if migrations need to run if supported',
   }),
   REDIS_HOST: str(),

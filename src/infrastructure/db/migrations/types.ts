@@ -9,7 +9,7 @@ import { Db } from 'mongodb'
  */
 export abstract class Migration<T extends Db> {
   constructor(
-    private readonly ctx: T,
+    protected readonly ctx: T,
     public readonly id: string,
   ) {}
   abstract up(): Promise<void>

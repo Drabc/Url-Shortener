@@ -1,7 +1,7 @@
 import { Logger } from 'pino'
 
-import { Clients } from '@infrastructure/config/config.js'
 import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
+import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
 
 /**
  * MigrationRunner is responsible for executing migration plans
@@ -16,11 +16,11 @@ export class MigrationRunner {
 
   /**
    * Runs all migration plans using the provided client registry.
-   * @param {Partial<Clients>} clientRegistry - Partial registry of database clients.
+   * @param {PersistenceConnections} connections - The registry of persistence connections
    * @returns {Promise<void>} Promise that resolves when all migrations have run.
    */
-  public async run(clientRegistry: Partial<Clients>): Promise<void> {
-    const plans = await this.planner.plans(clientRegistry)
+  public async run(connections: PersistenceConnections): Promise<void> {
+    const plans = await this.planner.plans(connections)
     const anyMigrations = plans.some((plan) => plan.migrations.length > 0)
 
     if (plans.length === 0 || !anyMigrations) {

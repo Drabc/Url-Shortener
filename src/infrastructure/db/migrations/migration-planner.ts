@@ -8,9 +8,14 @@ import {
   Migration,
   MigrationPlan,
 } from '@infrastructure/db/migrations/types.js'
-import { Clients } from '@infrastructure/config/config.js'
 import { MongoMigrationPlan } from '@infrastructure/db/migrations/plans/mongo-migration-plan.js'
-import { logger } from '@infrastructure/logging/logger.js'
+import {
+  InvalidMigrationFilenameError,
+  LatestMigrationFileNotFoundError,
+} from '@infrastructure/errors/migration.error.js'
+import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
+import { MongoClientKey } from '@infrastructure/clients/types.js'
+import { MONGO_CLIENT } from '@infrastructure/constants.js'
 
 // OK to use sync as this happens before server starts listening
 type FsLike = {
@@ -36,7 +41,7 @@ export class MigrationPlanner {
   /**
    * Plans migrations for the active clients based on the migration files
    * available in the specified migration path.
-   * @param {Partial<Clients>} clientRegistry - A registry of active clients, which may include
+   * @param {PersistenceConnections} connections - A registry of active clients, which may include
    * various database types.
    * @returns {Promise<MigrationPlan<Db>[]>} A promise that resolves to an array of migration plans.
    * Each plan corresponds to a supported database type with available migrations.
@@ -46,16 +51,18 @@ export class MigrationPlanner {
    * Use a modified version of clientRegistry that is specifically the
    * Supported db types
    */
-  async plans(clientRegistry: Partial<Clients>): Promise<MigrationPlan<Db>[]> {
-    const activeClientKeys = Object.keys(clientRegistry).filter(
-      (clientKey): clientKey is SupportedType =>
-        SUPPORTED_TYPES.includes(clientKey),
+  async plans(
+    connections: PersistenceConnections,
+  ): Promise<MigrationPlan<Db>[]> {
+    const activeClientKeys = connections.clientKeys.filter((clientKey) =>
+      SUPPORTED_TYPES.includes(clientKey),
     )
 
     const plans = await Promise.all(
+      // Don't spect this to get bigger, but abstract if it does
       activeClientKeys.map(async (supportedClientKey: SupportedType) => {
-        if (supportedClientKey == 'mongo') {
-          const client = clientRegistry.mongo as Db
+        if (supportedClientKey == MONGO_CLIENT) {
+          const client = connections.get<MongoClientKey>(supportedClientKey)
           return new MongoMigrationPlan(
             await this.getMigrations<Db>(supportedClientKey, client),
             client,
@@ -92,17 +99,20 @@ export class MigrationPlanner {
       .sort((a, b) => a.name.localeCompare(b.name))
 
     let startIndex = 0
-    logger.debug(latestMigration)
+
     if (latestMigration) {
       const latestMigrationFileName = `${latestMigration}.ts`
-      startIndex =
-        this.binarySearchMigrationIndex(files, latestMigrationFileName) + 1
-    }
-
-    if (startIndex === -1) {
-      throw new Error(
-        `Latest migration file ${latestMigration} not found in ${clientMigrationPath}`,
+      const foundIndex = this.binarySearchMigrationIndex(
+        files,
+        latestMigrationFileName,
       )
+      if (foundIndex === -1) {
+        throw new LatestMigrationFileNotFoundError(
+          latestMigrationFileName,
+          clientMigrationPath,
+        )
+      }
+      startIndex = foundIndex + 1
     }
 
     const migrationsToRun = files.slice(startIndex)
@@ -148,7 +158,7 @@ export class MigrationPlanner {
       const match = fileName.match(/^(\d+)-/)
 
       if (match === null) {
-        throw new Error(`Invalid migration file name format: ${fileName}`)
+        throw new InvalidMigrationFilenameError(fileName)
       }
 
       return parseInt(match[1], 10)

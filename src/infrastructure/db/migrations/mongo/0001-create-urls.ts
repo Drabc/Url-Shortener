@@ -5,16 +5,13 @@ import { Migration } from '@infrastructure/db/migrations/types.js'
 /**
  * Migration to create the 'urls' collection in MongoDB.
  * This collection will store short URLs with their original URLs and metadata.
- * @param db - The MongoDB database context.
+ * @param ctx - The MongoDB database context.
  * @param id - The migration ID.
  * @returns A new migration instance.
  */
 class CreateUrlsMigration extends Migration<Db> {
-  constructor(
-    private readonly db: Db,
-    public readonly id: string,
-  ) {
-    super(db, id)
+  constructor(ctx: Db, id: string) {
+    super(ctx, id)
   }
 
   /**
@@ -22,7 +19,7 @@ class CreateUrlsMigration extends Migration<Db> {
    * @returns {Promise<void>}
    */
   async up(): Promise<void> {
-    await this.db.createCollection('urls', {
+    await this.ctx.createCollection('urls', {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
@@ -58,7 +55,7 @@ class CreateUrlsMigration extends Migration<Db> {
         },
       },
     })
-    await this.db.collection('urls').createIndex({ code: 1 }, { unique: true })
+    await this.ctx.collection('urls').createIndex({ code: 1 }, { unique: true })
   }
 }
 

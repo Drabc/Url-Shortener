@@ -4,6 +4,25 @@ import {
   Migration,
   MigrationPlan,
 } from '@infrastructure/db/migrations/types.js'
+import {
+  MigrationCommitError,
+  MigrationLockAcquisitionError,
+  MigrationLockRenewalError,
+  MigrationLockReleaseError,
+  MigrationLockNotAcquiredError,
+} from '@infrastructure/errors/migration.error.js'
+
+type LockDoc = {
+  _id: string
+  holder: string
+  acquiredAt: Date
+  expiresAt: Date
+}
+
+type MigrationDoc = {
+  _id: string
+  ran_on: Date
+}
 
 /**
  * Mongo-specific migration plan providing a lease lock using a
@@ -11,6 +30,7 @@ import {
  */
 export class MongoMigrationPlan extends MigrationPlan<Db> {
   private static readonly LOCK_KEY = 'mongo'
+  // Todo: Create a small lock class when other plas are added
   private static readonly DEFAULT_LEASE_MS = 10 * 60_000
 
   private lockAcquired: boolean = false
@@ -49,7 +69,7 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
       ran_on: new Date(),
     })
 
-    if (!result.acknowledged) throw new Error('Unable to commit migration')
+    if (!result.acknowledged) throw new MigrationCommitError(migration.id)
   }
 
   /**
@@ -86,7 +106,7 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
       )
       this.lockAcquired = true
     } catch {
-      throw new Error('Failed to acquire migration lock')
+      throw new MigrationLockAcquisitionError()
     }
   }
 
@@ -94,8 +114,7 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
    * Renews the lock
    */
   public async renewLock(): Promise<void> {
-    if (!this.lockAcquired)
-      throw new Error('Unable to renew lock. No lock acquired')
+    if (!this.lockAcquired) throw new MigrationLockNotAcquiredError()
 
     const { expiresAt } = this.getLockTimes()
 
@@ -105,7 +124,7 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
       { writeConcern: { w: 'majority' } },
     )
 
-    if (!result.acknowledged) throw new Error('Unable to renew lock')
+    if (!result.acknowledged) throw new MigrationLockRenewalError()
   }
 
   /**
@@ -118,12 +137,13 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
       { writeConcern: { w: 'majority' } },
     )
 
-    if (!result.acknowledged) throw new Error('Unable to release lock')
+    if (!result.acknowledged) throw new MigrationLockReleaseError()
   }
 
   /**
    * Creates the relevant dates for a lock
    * @returns {{ now: Date, expiresAt: Date }} the relevant dates
+   * @todo Also move into lock class
    */
   private getLockTimes(): { now: Date; expiresAt: Date } {
     const now = new Date()
@@ -133,16 +153,4 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
 
     return { now, expiresAt }
   }
-}
-
-type LockDoc = {
-  _id: string
-  holder: string
-  acquiredAt: Date
-  expiresAt: Date
-}
-
-type MigrationDoc = {
-  _id: string
-  ran_on: Date
 }
