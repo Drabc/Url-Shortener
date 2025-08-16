@@ -10,8 +10,12 @@ import { logger } from '@infrastructure/logging/logger.js'
 import { MigrationRunner } from '@infrastructure/db/migrations/migration-runner.js'
 import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
 import { createPersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
-import { RedisClientKey } from '@infrastructure/clients/types.js'
-import { REDIS_CLIENT } from '@infrastructure/constants.js'
+import {
+  MongoClientKey,
+  RedisClientKey,
+} from '@infrastructure/clients/types.js'
+import { MONGO_CLIENT, REDIS_CLIENT } from '@infrastructure/constants.js'
+import { MongoShortUrlRepository } from '@infrastructure/repositories/mongo-short-url.repository.js'
 
 bootstrap().catch((err) => {
   logger.error(err)
@@ -35,10 +39,20 @@ async function bootstrap() {
   logger.info('Starting migrations...')
   await migrationRunner.run(persistenceConnections)
 
-  const redisRepository = new RedisShortUrlRepository(
-    persistenceConnections.get<RedisClientKey>(REDIS_CLIENT),
+  // Temporary: prefer Mongo over Redis
+  const mongoClient = persistenceConnections.get<MongoClientKey>(MONGO_CLIENT)
+  let shortUrlRepository
+  if (mongoClient) {
+    shortUrlRepository = new MongoShortUrlRepository(mongoClient)
+  } else {
+    shortUrlRepository = new RedisShortUrlRepository(
+      persistenceConnections.get<RedisClientKey>(REDIS_CLIENT),
+    )
+  }
+  const shortenerService = new ShortenerService(
+    shortUrlRepository,
+    config.baseUrl,
   )
-  const shortenerService = new ShortenerService(redisRepository, config.baseUrl)
   const shortenerController = new ShortenerController(shortenerService)
   const apiRouter = createV1Router(createShortenerRouter(shortenerController))
 
