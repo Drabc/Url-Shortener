@@ -178,7 +178,7 @@ export class MigrationPlanner {
     const migrationsCollection = db.collection('migrations')
     const latestMigration = await migrationsCollection
       .find()
-      .sort({ appliedAt: -1 })
+      .sort({ ranOn: -1 })
       .limit(1)
       .next()
     return latestMigration ? latestMigration._id.toString() : null

@@ -39,7 +39,7 @@ class CreateUrlsMigration extends Migration<Db> {
               bsonType: 'string',
               description: 'Full target URL',
             },
-            createAt: {
+            createdAt: {
               bsonType: 'date',
               description: 'When this document was created',
             },
