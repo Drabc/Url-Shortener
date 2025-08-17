@@ -1,6 +1,7 @@
+/* eslint-disable @stylistic/indent */
 import { Logger, LoggerOptions, pino } from 'pino'
 
-import { config } from '../../config/config.js'
+import { config } from '@infrastructure/config/config.js'
 
 const options: LoggerOptions = {
   level: config.isDev ? 'debug' : 'info',

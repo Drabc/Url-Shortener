@@ -1,11 +1,11 @@
 import { customAlphabet } from 'nanoid'
 
-import { IUrlRepository } from '../../domain/repositories/url-repository.interface.js'
-import { NotFoundError } from '../../shared/errors/index.js'
-import { ValidUrl } from '../../domain/values-objects/valid-url.js'
-import { ShortUrl } from '../../domain/entities/short-url.js'
-import { CodeExistsError } from '../../infrastructure/errors/code-exists.error.js'
-import { MaxCodeGenerationAttemptsError } from '../errors/max-code-generation-attempts.error.js'
+import { NotFoundError } from '@presentation/errors/not-found.error.js'
+import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
+import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { ValidUrl } from '@domain/value-objects/valid-url.js'
+import { ShortUrl } from '@domain/entities/short-url.js'
+import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
 
 /**
  * Service for URL shortening and resolution.

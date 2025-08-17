@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from 'express'
 
-import { ApiError } from '../shared/errors/api.error.js'
-import { InvalidUrlError } from '../domain/errors/invalid-url.error.js'
-import { ErrorType } from '../shared/errors/error-types.js'
-import { logger } from '../infrastructure/logging/logger.js'
-import { config } from '../config/config.js'
+import { InvalidUrlError } from '@domain/errors/invalid-url.error.js'
+import { logger } from '@infrastructure/logging/logger.js'
+import { config } from '@infrastructure/config/config.js'
+import { ApiError } from '@presentation/errors/api.error.js'
+import { ErrorType } from '@presentation/errors/error-types.js'
 
 /**
  * Middleware for handling errors in the application.

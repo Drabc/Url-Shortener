@@ -3,9 +3,9 @@ import swaggerUi from 'swagger-ui-express'
 import OpenApiValidator from 'express-openapi-validator'
 import { OpenAPIV3 } from 'openapi-types'
 
-import { errorHandler } from './middlewares/error-handler.middleware.js'
-import { swaggerSpec } from './swagger.js'
-import { patchPaths } from './helpers/patchPaths.js'
+import { errorHandler } from '@presentation/middlewares/error-handler.middleware.js'
+import { swaggerSpec } from '@presentation/docs/swagger.js'
+import { patchPaths } from '@presentation/docs/patchPaths.js'
 
 interface AppDeps {
   apiRouter: Router
@@ -21,7 +21,7 @@ export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
   const app: Express = express()
 
   // Augment swagger spec with API version
-  // Allows to define swagger-jsdocs without specifiying api version
+  // Allows to define swagger-jsdoc without specifying api version
   const spec: OpenAPIV3.Document = { ...swaggerSpec }
   spec.paths = patchPaths(spec.paths, '/api/v1')
 

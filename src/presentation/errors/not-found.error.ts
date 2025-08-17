@@ -1,5 +1,5 @@
-import { ApiError } from './api.error.js'
-import { ErrorType } from './error-types.js'
+import { ApiError } from '@presentation/errors/api.error.js'
+import { ErrorType } from '@presentation/errors/error-types.js'
 
 /**
  * Represents a Not Found error.

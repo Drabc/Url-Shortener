@@ -4,6 +4,7 @@ import importPlugin from 'eslint-plugin-import'
 import prettierPlugin from 'eslint-plugin-prettier'
 import jestPlugin from 'eslint-plugin-jest'
 import jsdocPlugin from 'eslint-plugin-jsdoc'
+import stylistic from '@stylistic/eslint-plugin'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
@@ -24,6 +25,7 @@ export default defineConfig([
 
     plugins: {
       '@typescript-eslint': typescriptPlugin,
+      '@stylistic': stylistic,
       import: importPlugin,
       prettier: prettierPlugin,
       jest: jestPlugin,
@@ -45,6 +47,8 @@ export default defineConfig([
         'newlines-between': 'always'
       }],
       quotes: ['error', 'single', { avoidEscape: true }],
+      '@stylistic/indent': ['error', 2],
+      '@stylistic/no-extra-semi': 'error',
       semi: ['error', 'never'],
       'jsdoc/require-jsdoc': ['warn',{
         contexts: [

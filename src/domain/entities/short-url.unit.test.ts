@@ -1,6 +1,5 @@
-import { ValidUrl } from '../values-objects/valid-url.js'
-
-import { ShortUrl } from './short-url.js'
+import { ValidUrl } from '@domain/value-objects/valid-url.js'
+import { ShortUrl } from '@domain/entities/short-url.js'
 
 describe('ShortUrl', () => {
   let validUrl: jest.Mocked<ValidUrl>

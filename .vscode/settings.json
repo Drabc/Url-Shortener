@@ -4,4 +4,9 @@
   "files.eol": "\n",
 
   "typescript.suggest.completeFunctionCalls": true,
+  "cSpell.words": [
+    "APIV",
+    "envalid",
+    "INITDB"
+  ],
 }

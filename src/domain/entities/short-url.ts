@@ -1,7 +1,6 @@
-import { InvalidCodeError } from '../errors/invalid-code.error.js'
-import { ValidUrl } from '../values-objects/valid-url.js'
-
-import { BaseEntity } from './base-entity.js'
+import { InvalidCodeError } from '@domain/errors/invalid-code.error.js'
+import { ValidUrl } from '@domain/value-objects/valid-url.js'
+import { BaseEntity } from '@domain/entities/base-entity.js'
 
 /**
  * Represents a shortened URL entity.
