@@ -23,7 +23,7 @@ describe('ShortenerService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUrlStorageClient = {
-      findById: jest.fn(),
+      findByCode: jest.fn(),
       save: jest.fn(),
     } as jest.Mocked<IUrlRepository>
     service = new ShortenerService(mockUrlStorageClient, baseUrl)
@@ -67,17 +67,17 @@ describe('ShortenerService', () => {
         code: nanoid,
         url,
       } as jest.Mocked<ShortUrl>
-      mockUrlStorageClient.findById.mockResolvedValue(shortUrl)
+      mockUrlStorageClient.findByCode.mockResolvedValue(shortUrl)
       const resolvedUrl = await service.resolveUrl(nanoid)
 
       expect(resolvedUrl).toEqual(url)
-      expect(mockUrlStorageClient.findById).toHaveBeenCalledWith(nanoid)
+      expect(mockUrlStorageClient.findByCode).toHaveBeenCalledWith(nanoid)
     })
 
     it('should throw NotFoundError when code is not found', async () => {
-      mockUrlStorageClient.findById.mockResolvedValue(null)
+      mockUrlStorageClient.findByCode.mockResolvedValue(null)
       await expect(service.resolveUrl(nanoid)).rejects.toThrow(NotFoundError)
-      expect(mockUrlStorageClient.findById).toHaveBeenCalledWith(nanoid)
+      expect(mockUrlStorageClient.findByCode).toHaveBeenCalledWith(nanoid)
     })
   })
 })

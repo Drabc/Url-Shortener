@@ -4,9 +4,9 @@ import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 export interface IUrlRepository {
   /**
    * Persists a short url
-   * @param {ShortUrl} entity The short url to save
+   * @param {ShortUrl} code The short url to save
    * @throws {CodeExistsError} if trying to save a code that is already in the persistence mechanism
    */
-  save(entity: ShortUrl): Promise<void>
-  findById(id: string): Promise<ShortUrl | null>
+  save(code: ShortUrl): Promise<void>
+  findByCode(code: string): Promise<ShortUrl | null>
 }

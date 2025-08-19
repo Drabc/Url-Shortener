@@ -45,7 +45,7 @@ describe('MongoShortUrlRepository', () => {
       }
       collection.findOne.mockResolvedValue(doc)
 
-      const result = await repo.findById('abc123')
+      const result = await repo.findByCode('abc123')
 
       expect(collection.findOne).toHaveBeenCalledWith({ code: 'abc123' })
       expect(result).toBeInstanceOf(ShortUrl)
@@ -56,7 +56,7 @@ describe('MongoShortUrlRepository', () => {
     it('returns null when no document is found', async () => {
       collection.findOne.mockResolvedValue(null)
 
-      const result = await repo.findById('missing')
+      const result = await repo.findByCode('missing')
 
       expect(collection.findOne).toHaveBeenCalledWith({ code: 'missing' })
       expect(result).toBeNull()
