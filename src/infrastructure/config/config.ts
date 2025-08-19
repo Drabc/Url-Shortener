@@ -20,6 +20,10 @@ const env = cleanEnv(process.env, {
   MONGO_DB: str({ default: 'url_shortener' }),
   NODE_ENV: str(),
   MIGRATIONS_PATH: str({ default: 'src/infrastructure/db/migrations' }),
+  POSTGRES_PASSWORD: str(),
+  POSTGRES_USER: str({ default: 'postgres' }),
+  POSTGRES_DB: str(),
+  POSTGRES_HOST: str(),
 })
 
 export const config = {
@@ -37,4 +41,8 @@ export const config = {
   rootDir: process.cwd(), // Can be replaced by a more robust solution
   clientTypes: env.CLIENT_TYPES,
   migrationsPath: join(process.cwd(), env.MIGRATIONS_PATH),
+  postgresPassword: env.POSTGRES_PASSWORD,
+  postgresUser: env.POSTGRES_USER,
+  postgresDb: env.POSTGRES_DB,
+  postgresHost: env.POSTGRES_HOST,
 }
