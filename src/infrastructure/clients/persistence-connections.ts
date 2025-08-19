@@ -1,6 +1,7 @@
 import { Redis, RedisOptions } from 'ioredis'
 import { MongoClient } from 'mongodb'
 import { Logger } from 'pino'
+import { Pool } from 'pg'
 
 import {
   ClientEntries,
@@ -9,6 +10,7 @@ import {
   ClientMap,
   MongoClientKey,
   RedisClientKey,
+  PostgresClientKey,
 } from '@infrastructure/clients/types.js'
 import { config } from '@infrastructure/config/config.js'
 import {
@@ -90,6 +92,8 @@ export async function createPersistenceConnections(
         registry[key] = await createMongoEntry(cfg, logger)
       } else if (key === 'redis') {
         registry[key] = createRedisEntry(cfg, logger)
+      } else if (key === 'postgres') {
+        registry[key] = createPostgresEntry(cfg, logger)
       } else {
         throw new UnsupportedClientKeyError(key)
       }
@@ -160,5 +164,32 @@ function createRedisEntry(
   return {
     client,
     disconnect,
+  }
+}
+
+/**
+ * Creates and connects to Postgres client
+ * @param {typeof config} cfg configuration object
+ * @param {Logger} logger logger instance
+ * @returns {ClientEntryOf<PostgresClientKey>} Connected Postgres client entry
+ */
+function createPostgresEntry(
+  cfg: typeof config,
+  logger: Logger,
+): ClientEntryOf<PostgresClientKey> {
+  logger.info('Connecting to Postgres...')
+  const pool = new Pool({
+    user: cfg.postgresUser,
+    host: cfg.postgresHost,
+    database: cfg.postgresDb,
+    password: cfg.postgresPassword,
+  })
+
+  return {
+    client: pool,
+    disconnect: async () => {
+      await pool.end()
+      logger.info('Postgres client disconnected')
+    },
   }
 }
