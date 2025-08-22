@@ -29,6 +29,10 @@ export class MigrationRunner {
     }
 
     for (const plan of plans) {
+      if (plan.migrations.length === 0) {
+        continue
+      }
+
       this.logger.info(`Starting ${plan.displayName}`)
       await plan.acquireLock()
 
