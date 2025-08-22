@@ -17,8 +17,8 @@ import {
  */
 export class PostgresMigrationPlan extends MigrationPlan<Pool> {
   private static readonly LOCK_KEY = 'postgres'
-  private static readonly MIGRATIONS_TABLE = 'schema_migrations'
-  private static readonly LOCKS_TABLE = 'migration_locks'
+  private static readonly MIGRATIONS_TABLE = 'meta.schema_migrations'
+  private static readonly LOCKS_TABLE = 'meta.migration_locks'
   private static readonly DEFAULT_LEASE_MS = 10 * 60_000
   private lockAcquired: boolean = false
 
@@ -68,8 +68,9 @@ export class PostgresMigrationPlan extends MigrationPlan<Pool> {
       )
       if (res.rowCount !== 1) throw new MigrationLockAcquisitionError()
       this.lockAcquired = true
-    } catch {
-      throw new MigrationLockAcquisitionError()
+    } catch (e) {
+      const details = e instanceof Error ? e.message : (e as string)
+      throw new MigrationLockAcquisitionError(details)
     }
   }
 

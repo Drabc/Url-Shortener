@@ -35,7 +35,7 @@ describe('PostgresShortUrlRepository', () => {
       const result = await repo.findByCode('abc123')
 
       expect(pool.query).toHaveBeenCalledWith(
-        'select id, code, original_url from urls where code = $1',
+        'select id, code, original_url from app.short_urls where code = $1',
         ['abc123'],
       )
       expect(result).toBeInstanceOf(ShortUrl)
@@ -49,7 +49,7 @@ describe('PostgresShortUrlRepository', () => {
       const result = await repo.findByCode('missing')
 
       expect(pool.query).toHaveBeenCalledWith(
-        'select id, code, original_url from urls where code = $1',
+        'select id, code, original_url from app.short_urls where code = $1',
         ['missing'],
       )
       expect(result).toBeNull()
@@ -64,7 +64,7 @@ describe('PostgresShortUrlRepository', () => {
       await expect(repo.save(entity)).resolves.toBeUndefined()
 
       expect(pool.query).toHaveBeenCalledWith(
-        'insert into urls (code, original_url, created_at, updated_at) values ($1, $2, now(), now())',
+        'insert into app.short_urls (code, original_url, created_at, updated_at) values ($1, $2, now(), now())',
         ['abc123', 'https://ex.com'],
       )
     })

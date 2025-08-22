@@ -35,7 +35,8 @@ export class PostgresShortUrlRepository implements IUrlRepository {
    * @returns {Promise<ShortUrl | null>} entity or null if not found
    */
   async findByCode(code: string): Promise<ShortUrl | null> {
-    const sql = 'select id, code, original_url from urls where code = $1'
+    const sql =
+      'select id, code, original_url from app.short_urls where code = $1'
     const res = await this.pool.query<UrlRow>(sql, [code])
 
     if (res.rowCount === 0) {
@@ -60,7 +61,7 @@ export class PostgresShortUrlRepository implements IUrlRepository {
     }
 
     const sql =
-      'insert into urls (code, original_url, created_at, updated_at) values ($1, $2, now(), now())'
+      'insert into app.short_urls (code, original_url, created_at, updated_at) values ($1, $2, now(), now())'
 
     try {
       await this.pool.query(sql, [code.code, code.url])

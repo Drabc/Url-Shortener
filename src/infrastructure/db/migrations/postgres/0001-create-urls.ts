@@ -36,7 +36,7 @@ class CreateUrlsTableMigration extends Migration<Pool> {
 
     await this.ctx.query(`
       create trigger trg_short_urls_touch_updated_at
-      before update on auth.short_urls
+      before update on app.short_urls
       for each row
       execute function app.trg_touch_updated_at(i)
     `)
