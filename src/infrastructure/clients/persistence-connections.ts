@@ -1,5 +1,5 @@
 import { Redis, RedisOptions } from 'ioredis'
-import { MongoClient } from 'mongodb'
+import { Db, MongoClient } from 'mongodb'
 import { Logger } from 'pino'
 import { Pool } from 'pg'
 
@@ -8,9 +8,6 @@ import {
   ClientKey,
   ClientEntryOf,
   ClientMap,
-  MongoClientKey,
-  RedisClientKey,
-  PostgresClientKey,
 } from '@infrastructure/clients/types.js'
 import { config } from '@infrastructure/config/config.js'
 import {
@@ -87,6 +84,7 @@ export async function createPersistenceConnections(
     if (registry[key]) {
       throw new DuplicateClientRegistrationError(key)
     }
+    // No need to abstract yet.
     try {
       if (key === 'mongo') {
         registry[key] = await createMongoEntry(cfg, logger)
@@ -110,12 +108,12 @@ export async function createPersistenceConnections(
  * Creates and connects to MongoDB client
  * @param {typeof config} cfg configuration object
  * @param {Logger} logger logger instance
- * @returns {Promise<ClientEntryOf<MongoClientKey>>} Connected MongoDB database entry
+ * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
  */
 async function createMongoEntry(
   cfg: typeof config,
   logger: Logger,
-): Promise<ClientEntryOf<MongoClientKey>> {
+): Promise<ClientEntryOf<Db>> {
   const conn = new MongoClient(cfg.mongoEndpoint, {
     auth: {
       username: cfg.mongoUsername,
@@ -141,12 +139,12 @@ async function createMongoEntry(
  * Creates and connects to Redis client
  * @param {typeof config} cfg configuration object
  * @param {Logger} logger logger instance
- * @returns {ClientEntryOf<RedisClientKey>} Connected Redis client entry
+ * @returns {ClientEntryOf<Redis>} Connected Redis client entry
  */
 function createRedisEntry(
   cfg: typeof config,
   logger: Logger,
-): ClientEntryOf<RedisClientKey> {
+): ClientEntryOf<Redis> {
   const redisOptions: RedisOptions = {
     host: cfg.redisHost,
     password: cfg.redisPassword,
@@ -171,12 +169,12 @@ function createRedisEntry(
  * Creates and connects to Postgres client
  * @param {typeof config} cfg configuration object
  * @param {Logger} logger logger instance
- * @returns {ClientEntryOf<PostgresClientKey>} Connected Postgres client entry
+ * @returns {ClientEntryOf<Pool>} Connected Postgres client entry
  */
 function createPostgresEntry(
   cfg: typeof config,
   logger: Logger,
-): ClientEntryOf<PostgresClientKey> {
+): ClientEntryOf<Pool> {
   logger.info('Connecting to Postgres...')
   const pool = new Pool({
     user: cfg.postgresUser,

@@ -3,6 +3,7 @@ import { join } from 'path'
 import { pathToFileURL } from 'url'
 
 import { Db } from 'mongodb'
+import { Pool } from 'pg'
 
 import {
   Migration,
@@ -14,11 +15,9 @@ import {
   LatestMigrationFileNotFoundError,
 } from '@infrastructure/errors/migration.error.js'
 import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
-import type {
-  ClientMap,
-  MongoClientKey,
-} from '@infrastructure/clients/types.js'
-import { MONGO_CLIENT } from '@infrastructure/constants.js'
+import type { ClientMap, ClientValue } from '@infrastructure/clients/types.js'
+import { MONGO_CLIENT, POSTGRES_CLIENT } from '@infrastructure/constants.js'
+import { PostgresMigrationPlan } from '@infrastructure/db/migrations/plans/postgres-migration-plan.js'
 
 // OK to use sync as this happens before server starts listening
 type FsLike = {
@@ -30,13 +29,13 @@ type FsLike = {
 type ImporterLike = <T = unknown>(specifier: string) => Promise<T>
 
 // Shape of a migration module exporting a default factory
-type MigrationFactoryModule<T extends Db> = {
+type MigrationFactoryModule<T extends ClientValue> = {
   default: (client: T, id: string) => Migration<T>
 }
 
-const SUPPORTED_TYPES = ['mongo']
+const SUPPORTED_TYPES = [MONGO_CLIENT, POSTGRES_CLIENT] as const
 type SupportedType = (typeof SUPPORTED_TYPES)[number]
-
+type SupportedClient = Db | Pool
 /**
  * MigrationPlanner is responsible for planning migrations based on the active clients and the
  * available migration files in the specified path.
@@ -55,7 +54,7 @@ export class MigrationPlanner {
    * available in the specified migration path.
    * @param {PersistenceConnections} connections - A registry of active clients, which may include
    * various database types.
-   * @returns {Promise<MigrationPlan<Db>[]>} A promise that resolves to an array of migration plans.
+   * @returns {Promise<MigrationPlan<SupportedClient>[]>} A promise that resolves to an array of migration plans.
    * Each plan corresponds to a supported database type with available migrations.
    * @throws {LatestMigrationFileNotFoundError} If the latest migration file cannot be found for a client type.
    * @throws {InvalidMigrationFilenameError} If a migration file has an invalid filename format.
@@ -68,19 +67,32 @@ export class MigrationPlanner {
    */
   async plans(
     connections: PersistenceConnections,
-  ): Promise<MigrationPlan<Db>[]> {
-    const activeClientKeys = connections.clientKeys.filter((clientKey) =>
-      SUPPORTED_TYPES.includes(clientKey),
+  ): Promise<MigrationPlan<SupportedClient>[]> {
+    const activeClientKeys = connections.clientKeys.filter(
+      (clientKey): clientKey is SupportedType =>
+        SUPPORTED_TYPES.includes(clientKey as SupportedType),
     )
 
     const plans = await Promise.all(
       // Don't expect this to get bigger, but abstract if it does
       activeClientKeys.map(async (supportedClientKey: SupportedType) => {
         if (supportedClientKey == MONGO_CLIENT) {
-          const client = connections.get<MongoClientKey>(supportedClientKey)
+          const client = connections.get(supportedClientKey)
           const latestMigrationId = await this.findLatestMongoMigration(client)
           return new MongoMigrationPlan(
-            await this.getMigrations<Db>(
+            await this.getMigrations(
+              supportedClientKey,
+              client,
+              latestMigrationId,
+            ),
+            client,
+          )
+        } else if (supportedClientKey == POSTGRES_CLIENT) {
+          const client = connections.get(supportedClientKey)
+          const latestMigrationId =
+            await this.findLatestPostgresMigration(client)
+          return new PostgresMigrationPlan(
+            await this.getMigrations(
               supportedClientKey,
               client,
               latestMigrationId,
@@ -99,16 +111,16 @@ export class MigrationPlanner {
    * It reads the migration directory for the given client type,
    * imports the migration files, and returns them as an array of Migration objects.
    * @param {SupportedType} clientType - The type of database client (e.g., 'mongo').
-   * @param {keyof ClientMap} client - The client instance from the client registry.
+   * @param {ClientValue} client - The client instance from the client registry.
    * @param {string | null} latestMigrationId - The ID of the latest applied migration,
-   * @returns {Promise<Migration<keyof ClientMap>[]>} A promise that resolves to an array of Migration objects
+   * @returns {Promise<Migration<ClientMap[ClientValue]>>} A promise that resolves to an array of Migration objects
    * for the specified client type.
    */
-  private async getMigrations<T extends Db>(
-    clientType: SupportedType,
-    client: T,
+  private async getMigrations<K extends SupportedType>(
+    clientType: K,
+    client: ClientMap[K],
     latestMigrationId: string | null,
-  ): Promise<Migration<T>[]> {
+  ): Promise<Migration<ClientMap[K]>[]> {
     const clientMigrationPath = join(this.migrationPath, clientType)
     const files = this.getValidMigrationFiles(clientMigrationPath)
 
@@ -137,7 +149,7 @@ export class MigrationPlanner {
           join(clientMigrationPath, fileName.name),
         ).href
         const migrationModule =
-          await this.importer<MigrationFactoryModule<T>>(href)
+          await this.importer<MigrationFactoryModule<ClientMap[K]>>(href)
         const migrationId = fileName.name.replace('.ts', '')
         return migrationModule.default(client, migrationId)
       }),
@@ -182,6 +194,24 @@ export class MigrationPlanner {
       .limit(1)
       .next()
     return latestMigration ? latestMigration._id.toString() : null
+  }
+
+  /**
+   * Finds the latest applied migration in the Postgres 'meta.schema_migrations' table.
+   * @param {Pool} pool - The Postgres connection pool.
+   * @returns {Promise<string | null>} The migration ID of the latest migration, or null if none found.
+   */
+  private async findLatestPostgresMigration(
+    pool: Pool,
+  ): Promise<string | null> {
+    const query = `
+      select id
+      from meta.schema_migrations
+      order by id desc
+      limit 1
+    `
+    const result = await pool.query<{ id: string }>(query)
+    return !!result.rowCount ? result.rows[0].id : null
   }
 
   /**
