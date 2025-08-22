@@ -22,8 +22,10 @@ describe('PostgresMigrationPlan', () => {
     } as unknown as jest.Mocked<Migration<Pool>>
   })
 
-  it('has the correct display name', () => {
-    expect(plan.displayName).toBe('Postgres Migration Plan')
+  describe('displayName', () => {
+    it('has the correct display name', () => {
+      expect(plan.displayName).toBe('Postgres Migration Plan')
+    })
   })
 
   describe('commitMigration()', () => {
@@ -81,7 +83,7 @@ describe('PostgresMigrationPlan', () => {
       expect(pool.query).toHaveBeenCalledTimes(2)
     })
 
-    it('throws MigrationLockReleaseError when a lock was acquired, but was update the expiration time', async () => {
+    it('throws MigrationLockReleaseError when a lock was acquired, but failed to update the expiration time', async () => {
       // acquire success
       pool.query.mockResolvedValueOnce({ rowCount: 1 })
       await plan.acquireLock()

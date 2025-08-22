@@ -3,7 +3,7 @@ import type { Pool } from 'pg'
 import { Migration } from '@infrastructure/db/migrations/types.js'
 
 /**
- * Creates the 'urls' table in Postgres.
+ * Creates the 'app.short_urls' table in Postgres.
  * Columns:
  *  - id uuid primary key default gen_random_uuid()
  *  - code text unique not null
