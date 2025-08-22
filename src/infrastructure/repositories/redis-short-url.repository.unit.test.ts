@@ -22,7 +22,7 @@ describe('RedisShortUrlRepository', () => {
     it('should return a ShortUrl when the client finds the code', async () => {
       mockRedisClient.get.mockResolvedValue('https://example.com')
 
-      const result = await repository.findById(code)
+      const result = await repository.findByCode(code)
       expect(mockRedisClient.get).toHaveBeenCalledWith(code)
       expect(result).toBeInstanceOf(ShortUrl)
     })
@@ -30,7 +30,7 @@ describe('RedisShortUrlRepository', () => {
     it('should return null when the client does not find the code', async () => {
       mockRedisClient.get.mockResolvedValue(null)
 
-      const result = await repository.findById(code)
+      const result = await repository.findByCode(code)
 
       expect(mockRedisClient.get).toHaveBeenCalledWith(code)
       expect(result).toBeNull()

@@ -59,7 +59,7 @@ export class ShortenerService {
    *   Thrown if the code does not exist in the storage.
    */
   async resolveUrl(code: string): Promise<string> {
-    const shortUrl = await this.urlStorageClient.findById(code)
+    const shortUrl = await this.urlStorageClient.findByCode(code)
     if (!shortUrl) {
       // TODO: Replace by an application error
       throw new NotFoundError(`Code ${code}`)

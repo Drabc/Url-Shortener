@@ -1,14 +1,13 @@
 import { Redis, RedisOptions } from 'ioredis'
-import { MongoClient } from 'mongodb'
+import { Db, MongoClient } from 'mongodb'
 import { Logger } from 'pino'
+import { Pool } from 'pg'
 
 import {
   ClientEntries,
   ClientKey,
   ClientEntryOf,
   ClientMap,
-  MongoClientKey,
-  RedisClientKey,
 } from '@infrastructure/clients/types.js'
 import { config } from '@infrastructure/config/config.js'
 import {
@@ -85,11 +84,14 @@ export async function createPersistenceConnections(
     if (registry[key]) {
       throw new DuplicateClientRegistrationError(key)
     }
+    // No need to abstract yet.
     try {
       if (key === 'mongo') {
         registry[key] = await createMongoEntry(cfg, logger)
       } else if (key === 'redis') {
         registry[key] = createRedisEntry(cfg, logger)
+      } else if (key === 'postgres') {
+        registry[key] = createPostgresEntry(cfg, logger)
       } else {
         throw new UnsupportedClientKeyError(key)
       }
@@ -106,12 +108,12 @@ export async function createPersistenceConnections(
  * Creates and connects to MongoDB client
  * @param {typeof config} cfg configuration object
  * @param {Logger} logger logger instance
- * @returns {Promise<ClientEntryOf<MongoClientKey>>} Connected MongoDB database entry
+ * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
  */
 async function createMongoEntry(
   cfg: typeof config,
   logger: Logger,
-): Promise<ClientEntryOf<MongoClientKey>> {
+): Promise<ClientEntryOf<Db>> {
   const conn = new MongoClient(cfg.mongoEndpoint, {
     auth: {
       username: cfg.mongoUsername,
@@ -137,12 +139,12 @@ async function createMongoEntry(
  * Creates and connects to Redis client
  * @param {typeof config} cfg configuration object
  * @param {Logger} logger logger instance
- * @returns {ClientEntryOf<RedisClientKey>} Connected Redis client entry
+ * @returns {ClientEntryOf<Redis>} Connected Redis client entry
  */
 function createRedisEntry(
   cfg: typeof config,
   logger: Logger,
-): ClientEntryOf<RedisClientKey> {
+): ClientEntryOf<Redis> {
   const redisOptions: RedisOptions = {
     host: cfg.redisHost,
     password: cfg.redisPassword,
@@ -160,5 +162,32 @@ function createRedisEntry(
   return {
     client,
     disconnect,
+  }
+}
+
+/**
+ * Creates and connects to Postgres client
+ * @param {typeof config} cfg configuration object
+ * @param {Logger} logger logger instance
+ * @returns {ClientEntryOf<Pool>} Connected Postgres client entry
+ */
+function createPostgresEntry(
+  cfg: typeof config,
+  logger: Logger,
+): ClientEntryOf<Pool> {
+  logger.info('Connecting to Postgres...')
+  const pool = new Pool({
+    user: cfg.postgresUser,
+    host: cfg.postgresHost,
+    database: cfg.postgresDb,
+    password: cfg.postgresPassword,
+  })
+
+  return {
+    client: pool,
+    disconnect: async () => {
+      await pool.end()
+      logger.info('Postgres client disconnected')
+    },
   }
 }

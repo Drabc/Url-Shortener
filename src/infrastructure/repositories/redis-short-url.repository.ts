@@ -22,7 +22,7 @@ export class RedisShortUrlRepository implements IUrlRepository {
    * @param {string} code - The unique code of the short URL to retrieve.
    * @returns {Promise<ShortUrl | null>} A promise that resolves to the ShortUrl entity or null if not found.
    */
-  async findById(code: string): Promise<ShortUrl | null> {
+  async findByCode(code: string): Promise<ShortUrl | null> {
     const url = await this.client.get(code)
     if (!url) return null
     // Move to factory when more persistent objects are added

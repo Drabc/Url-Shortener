@@ -49,8 +49,10 @@ describe('MongoMigrationPlan', () => {
     } as unknown as Migration<Db>
   })
 
-  it('displayName returns the expected label', () => {
-    expect(plan.displayName).toBe('MongoDB Migration Plan')
+  describe('displayName', () => {
+    it('returns the expected label', () => {
+      expect(plan.displayName).toBe('MongoDB Migration Plan')
+    })
   })
 
   describe('commitMigration()', () => {
@@ -98,9 +100,7 @@ describe('MongoMigrationPlan', () => {
     })
 
     it('throws MigrationLockAcquisitionError when underlying call fails', async () => {
-      locksCollection.findOneAndUpdate.mockRejectedValue(
-        new Error('db error'),
-      )
+      locksCollection.findOneAndUpdate.mockRejectedValue(new Error('db error'))
 
       await expect(plan.acquireLock()).rejects.toBeInstanceOf(
         MigrationLockAcquisitionError,

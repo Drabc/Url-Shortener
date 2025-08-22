@@ -7,6 +7,7 @@
   "cSpell.words": [
     "APIV",
     "envalid",
-    "INITDB"
+    "INITDB",
+    "timestamptz"
   ],
 }

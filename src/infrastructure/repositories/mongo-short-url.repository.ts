@@ -34,7 +34,7 @@ export class MongoShortUrlRepository implements IUrlRepository {
    * @param {string} code - The unique code of the short URL.
    * @returns {Promise<ShortUrl | null>} The found ShortUrl entity or null if not found.
    */
-  async findById(code: string): Promise<ShortUrl | null> {
+  async findByCode(code: string): Promise<ShortUrl | null> {
     const result = await this.collection.findOne<MongoShortUrl>({
       code,
     })

@@ -1,4 +1,4 @@
-import { Db } from 'mongodb'
+import { ClientValue } from '@infrastructure/clients/types.js'
 
 /**
  * Base migration class to enforce constructor signature.
@@ -7,7 +7,7 @@ import { Db } from 'mongodb'
  * @param id - The migration ID.
  * @returns A new migration instance.
  */
-export abstract class Migration<T extends Db> {
+export abstract class Migration<T extends ClientValue> {
   constructor(
     protected readonly ctx: T,
     public readonly id: string,
@@ -21,7 +21,7 @@ export abstract class Migration<T extends Db> {
  * @param migrations - The migrations to be executed.
  * @returns A new migration plan instance.
  */
-export abstract class MigrationPlan<T extends Db> {
+export abstract class MigrationPlan<T extends ClientValue> {
   abstract displayName: string
 
   constructor(
