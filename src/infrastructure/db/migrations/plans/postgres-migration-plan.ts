@@ -1,5 +1,3 @@
-import type { Pool } from 'pg'
-
 import {
   Migration,
   MigrationPlan,
@@ -9,13 +7,14 @@ import {
   MigrationLockAcquisitionError,
   MigrationLockReleaseError,
 } from '@infrastructure/errors/migration.error.js'
+import { PgClient } from '@infrastructure/clients/pg-client.js'
 
 /**
  * Postgres-specific migration plan using a lock table and migrations table.
  * Locking uses a dedicated table with a single row and a lease expiration,
  * similar to the Mongo plan semantics.
  */
-export class PostgresMigrationPlan extends MigrationPlan<Pool> {
+export class PostgresMigrationPlan extends MigrationPlan<PgClient> {
   private static readonly LOCK_KEY = 'postgres'
   private static readonly MIGRATIONS_TABLE = 'meta.schema_migrations'
   private static readonly LOCKS_TABLE = 'meta.migration_locks'
@@ -32,10 +31,10 @@ export class PostgresMigrationPlan extends MigrationPlan<Pool> {
 
   /**
    * Records a migration as committed.
-   * @param {Migration<Pool>} migration - The migration to commit
+   * @param {Migration<PgClient>} migration - The migration to commit
    * @returns {Promise<void>}
    */
-  public async commitMigration(migration: Migration<Pool>): Promise<void> {
+  public async commitMigration(migration: Migration<PgClient>): Promise<void> {
     const res = await this.ctx.query(
       `insert into ${PostgresMigrationPlan.MIGRATIONS_TABLE} (id) values ($1)`,
       [migration.id],
