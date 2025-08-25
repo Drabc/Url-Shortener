@@ -3,20 +3,26 @@ import { ShortenerController } from '@presentation/controllers/shortener.control
 import { createShortenerRouter } from '@presentation/routes/shortener.routes.js'
 import { createV1Router } from '@presentation/routes/v1.routes.js'
 import { createRedirectRoutes } from '@presentation/routes/redirect.routes.js'
+import { createUserRouter } from '@presentation/routes/user.routes.js'
+import { UserController } from '@presentation/controllers/users.controller.js'
 import { ShortenerService } from '@application/services/shortener.service.js'
+import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
+import { clock } from '@application/shared/clock.js'
 import { config } from '@infrastructure/config/config.js'
-import { RedisShortUrlRepository } from '@infrastructure/repositories/redis-short-url.repository.js'
+// import { RedisShortUrlRepository } from '@infrastructure/repositories/url/redis-short-url.repository.js'
 import { logger } from '@infrastructure/logging/logger.js'
 import { MigrationRunner } from '@infrastructure/db/migrations/migration-runner.js'
 import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
 import { createPersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
 import {
-  MONGO_CLIENT,
+  // MONGO_CLIENT,
   POSTGRES_CLIENT,
-  REDIS_CLIENT,
+  // REDIS_CLIENT,
 } from '@infrastructure/constants.js'
-import { MongoShortUrlRepository } from '@infrastructure/repositories/mongo-short-url.repository.js'
-import { PostgresShortUrlRepository } from '@infrastructure/repositories/postgres-short-url.repository.js'
+// import { MongoShortUrlRepository } from '@infrastructure/repositories/url/mongo-short-url.repository.js'
+import { PostgresShortUrlRepository } from '@infrastructure/repositories/url/postgres-short-url.repository.js'
+import { PostgresUserRepository } from '@infrastructure/repositories/user/postgres-user.repository.js'
+import { Argon2PasswordHasher } from '@infrastructure/adapters/argon2-password-hasher.adapter.js'
 
 bootstrap().catch((err) => {
   logger.error(err)
@@ -40,25 +46,35 @@ async function bootstrap() {
   logger.info('Starting migrations...')
   await migrationRunner.run(persistenceConnections)
 
-  // Temporary: prefer Mongo over Redis
-  const mongoClient = persistenceConnections.get(MONGO_CLIENT)
+  // const mongoClient = persistenceConnections.get(MONGO_CLIENT)
   const postgresClient = persistenceConnections.get(POSTGRES_CLIENT)
-  let shortUrlRepository
-  if (postgresClient) {
-    shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
-  } else if (mongoClient) {
-    shortUrlRepository = new MongoShortUrlRepository(mongoClient)
-  } else {
-    shortUrlRepository = new RedisShortUrlRepository(
-      persistenceConnections.get(REDIS_CLIENT),
-    )
-  }
+  const shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
+  const userRepository = new PostgresUserRepository(postgresClient)
+  // The below is to switch between clients
+  // if (postgresClient) {
+  // shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
+  // } else if (mongoClient) {
+  // shortUrlRepository = new MongoShortUrlRepository(mongoClient)
+  // } else {
+  // shortUrlRepository = new RedisShortUrlRepository(
+  // persistenceConnections.get(REDIS_CLIENT),
+  // )
+  // }
+
+  const hasher = new Argon2PasswordHasher(config.pepper)
+  const registerUser = new RegisterUser(userRepository, hasher, clock)
+  const userController = new UserController(registerUser)
+
   const shortenerService = new ShortenerService(
     shortUrlRepository,
     config.baseUrl,
   )
   const shortenerController = new ShortenerController(shortenerService)
-  const apiRouter = createV1Router(createShortenerRouter(shortenerController))
+
+  const apiRouter = createV1Router(
+    createShortenerRouter(shortenerController),
+    createUserRouter(userController),
+  )
 
   const redirectRouter = createRedirectRoutes(shortenerController)
 
