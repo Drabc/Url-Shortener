@@ -43,7 +43,7 @@ async function bootstrap() {
     logger,
   )
 
-  logger.info('Starting migrations...')
+  logger.info('Checking for migrations...')
   await migrationRunner.run(persistenceConnections)
 
   // const mongoClient = persistenceConnections.get(MONGO_CLIENT)
