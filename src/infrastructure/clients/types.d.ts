@@ -1,12 +1,12 @@
 import type { Db } from 'mongodb'
 import type { Redis } from 'ioredis'
-import type { Pool } from 'pg'
 
 import {
   MONGO_CLIENT,
   REDIS_CLIENT,
   POSTGRES_CLIENT,
 } from '@infrastructure/constants.ts'
+import { PgClient } from '@infrastructure/clients/pg-client.ts'
 
 export type ClientKey =
   | typeof MONGO_CLIENT
@@ -16,7 +16,7 @@ export type ClientKey =
 export type ClientMap = {
   [MONGO_CLIENT]: Db
   [REDIS_CLIENT]: Redis
-  [POSTGRES_CLIENT]: Pool
+  [POSTGRES_CLIENT]: PgClient
 }
 
 export type ClientValue = ClientMap[ClientKey]

@@ -9,7 +9,7 @@ import {
 import {
   MongoShortUrlRepository,
   MongoShortUrl,
-} from '@infrastructure/repositories/mongo-short-url.repository.js'
+} from '@infrastructure/repositories/url/mongo-short-url.repository.js'
 
 describe('MongoShortUrlRepository', () => {
   let db: jest.Mocked<Db>

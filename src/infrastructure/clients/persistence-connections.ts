@@ -1,5 +1,5 @@
-import { Redis, RedisOptions } from 'ioredis'
-import { Db, MongoClient } from 'mongodb'
+// import { Redis, RedisOptions } from 'ioredis'
+// import { Db, MongoClient } from 'mongodb'
 import { Logger } from 'pino'
 import { Pool } from 'pg'
 
@@ -9,6 +9,7 @@ import {
   ClientEntryOf,
   ClientMap,
 } from '@infrastructure/clients/types.js'
+import { PgClient } from '@infrastructure/clients/pg-client.js'
 import { config } from '@infrastructure/config/config.js'
 import {
   ClientInitializationError,
@@ -87,9 +88,9 @@ export async function createPersistenceConnections(
     // No need to abstract yet.
     try {
       if (key === 'mongo') {
-        registry[key] = await createMongoEntry(cfg, logger)
+        // registry[key] = await createMongoEntry(cfg, logger)
       } else if (key === 'redis') {
-        registry[key] = createRedisEntry(cfg, logger)
+        // registry[key] = createRedisEntry(cfg, logger)
       } else if (key === 'postgres') {
         registry[key] = createPostgresEntry(cfg, logger)
       } else {
@@ -104,77 +105,78 @@ export async function createPersistenceConnections(
   return new PersistenceConnections(logger, registry)
 }
 
-/**
- * Creates and connects to MongoDB client
- * @param {typeof config} cfg configuration object
- * @param {Logger} logger logger instance
- * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
- */
-async function createMongoEntry(
-  cfg: typeof config,
-  logger: Logger,
-): Promise<ClientEntryOf<Db>> {
-  const conn = new MongoClient(cfg.mongoEndpoint, {
-    auth: {
-      username: cfg.mongoUsername,
-      password: cfg.mongoPassword,
-    },
-  })
+// Disabling for now
+// /**
+//  * Creates and connects to MongoDB client
+//  * @param {typeof config} cfg configuration object
+//  * @param {Logger} logger logger instance
+//  * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
+//  */
+// async function createMongoEntry(
+//   cfg: typeof config,
+//   logger: Logger,
+// ): Promise<ClientEntryOf<Db>> {
+//   const conn = new MongoClient(cfg.mongoEndpoint, {
+//     auth: {
+//       username: cfg.mongoUsername,
+//       password: cfg.mongoPassword,
+//     },
+//   })
 
-  logger.info('Connecting to MongoDB...')
-  await conn.connect()
+//   logger.info('Connecting to MongoDB...')
+//   await conn.connect()
 
-  const disconnect = async () => {
-    await conn.close()
-    logger.info('MongoDB Client disconnected')
-  }
+//   const disconnect = async () => {
+//     await conn.close()
+//     logger.info('MongoDB Client disconnected')
+//   }
 
-  return {
-    client: conn.db(cfg.mongoDb),
-    disconnect,
-  }
-}
+//   return {
+//     client: conn.db(cfg.mongoDb),
+//     disconnect,
+//   }
+// }
 
-/**
- * Creates and connects to Redis client
- * @param {typeof config} cfg configuration object
- * @param {Logger} logger logger instance
- * @returns {ClientEntryOf<Redis>} Connected Redis client entry
- */
-function createRedisEntry(
-  cfg: typeof config,
-  logger: Logger,
-): ClientEntryOf<Redis> {
-  const redisOptions: RedisOptions = {
-    host: cfg.redisHost,
-    password: cfg.redisPassword,
-    username: cfg.redisUsername,
-  }
+// /**
+//  * Creates and connects to Redis client
+//  * @param {typeof config} cfg configuration object
+//  * @param {Logger} logger logger instance
+//  * @returns {ClientEntryOf<Redis>} Connected Redis client entry
+//  */
+// function createRedisEntry(
+//   cfg: typeof config,
+//   logger: Logger,
+// ): ClientEntryOf<Redis> {
+//   const redisOptions: RedisOptions = {
+//     host: cfg.redisHost,
+//     password: cfg.redisPassword,
+//     username: cfg.redisUsername,
+//   }
 
-  logger.info('Connecting to Redis...')
-  const client = new Redis(redisOptions)
+//   logger.info('Connecting to Redis...')
+//   const client = new Redis(redisOptions)
 
-  const disconnect = async () => {
-    await client.quit()
-    logger.info('Redis client disconnected')
-  }
+//   const disconnect = async () => {
+//     await client.quit()
+//     logger.info('Redis client disconnected')
+//   }
 
-  return {
-    client,
-    disconnect,
-  }
-}
+//   return {
+//     client,
+//     disconnect,
+//   }
+// }
 
 /**
  * Creates and connects to Postgres client
  * @param {typeof config} cfg configuration object
  * @param {Logger} logger logger instance
- * @returns {ClientEntryOf<Pool>} Connected Postgres client entry
+ * @returns {ClientEntryOf<PgClient>} Connected Postgres client entry
  */
 function createPostgresEntry(
   cfg: typeof config,
   logger: Logger,
-): ClientEntryOf<Pool> {
+): ClientEntryOf<PgClient> {
   logger.info('Connecting to Postgres...')
   const pool = new Pool({
     user: cfg.postgresUser,
@@ -184,7 +186,7 @@ function createPostgresEntry(
   })
 
   return {
-    client: pool,
+    client: new PgClient(pool),
     disconnect: async () => {
       await pool.end()
       logger.info('Postgres client disconnected')

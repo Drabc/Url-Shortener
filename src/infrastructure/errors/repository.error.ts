@@ -18,3 +18,14 @@ export class ImmutableCodeError extends Error {
     super('Short URL codes are immutable and cannot be changed once set.')
   }
 }
+
+/**
+ * Persistence Error thrown when attempting to create an entity that already exists.
+ * @param {string} [entity='Entity'] - The name of the entity that already exists.
+ * @augments {Error}
+ */
+export class EntityAlreadyExistsError extends Error {
+  constructor(entity: string = 'Entity') {
+    super(`${entity} already exists`)
+  }
+}
