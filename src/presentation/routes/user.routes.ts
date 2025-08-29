@@ -47,18 +47,20 @@ export function createUserRouter(controller: UserController): Router {
    *     responses:
    *       '201':
    *         description: User successfully registered
-   *       '400':
-   *         description: Validation error (invalid email or password rules)
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorFormat'
    *       '409':
    *         description: User already exists
    *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ErrorFormat'
+   *       '422':
+   *         description: Email or Password is invalid
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorFormat'
+   *       '500':
+   *         $ref: '#/components/responses/SystemError'
    */
   userRouter.post('/users', controller.register.bind(controller))
 

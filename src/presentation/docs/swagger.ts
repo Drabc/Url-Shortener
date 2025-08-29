@@ -45,6 +45,18 @@ export const swaggerSpec = swaggerJSDoc({
           },
         },
       },
+      responses: {
+        SystemError: {
+          description: 'System Error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorFormat',
+              },
+            },
+          },
+        },
+      },
     },
   },
   apis: [`${config.rootDir}/src/presentation/routes/**/*.ts`],
