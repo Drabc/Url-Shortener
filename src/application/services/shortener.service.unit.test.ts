@@ -1,7 +1,7 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
-import { NotFoundError } from '@presentation/errors/not-found.error.js'
+import { NotFoundError } from '@application/errors/not-found.error.js'
 import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
 import { ShortenerService } from '@application/services/shortener.service.js'
 

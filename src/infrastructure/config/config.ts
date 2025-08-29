@@ -24,6 +24,7 @@ const env = cleanEnv(process.env, {
   POSTGRES_USER: str({ default: 'postgres' }),
   POSTGRES_DB: str(),
   POSTGRES_HOST: str(),
+  PEPPER: str({ desc: '16-32 bytes for hashing passwords' }),
 })
 
 export const config = {
@@ -45,4 +46,5 @@ export const config = {
   postgresUser: env.POSTGRES_USER,
   postgresDb: env.POSTGRES_DB,
   postgresHost: env.POSTGRES_HOST,
+  pepper: env.PEPPER,
 }

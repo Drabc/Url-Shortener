@@ -1,5 +1,4 @@
-import type { Pool } from 'pg'
-
+import { PgClient } from '@infrastructure/clients/pg-client.js'
 import { Migration } from '@infrastructure/db/migrations/types.js'
 
 /**
@@ -11,8 +10,8 @@ import { Migration } from '@infrastructure/db/migrations/types.js'
  *  - created_at timestamptz not null default now()
  *  - updated_at timestamptz not null default now()
  */
-class CreateUrlsTableMigration extends Migration<Pool> {
-  public constructor(ctx: Pool, id: string) {
+class CreateUrlsTableMigration extends Migration<PgClient> {
+  public constructor(ctx: PgClient, id: string) {
     super(ctx, id)
   }
 
@@ -45,10 +44,13 @@ class CreateUrlsTableMigration extends Migration<Pool> {
 
 /**
  * Factory for the Postgres urls table migration.
- * @param {Pool} pool - Postgres connection pool
+ * @param {PgClient} client - Postgres connection pool
  * @param {string} id - migration identifier (e.g., 0001-create-urls)
  * @returns {CreateUrlsTableMigration} A new migration instance for creating the urls table
  */
-export default function createPostgresUrlsMigration(pool: Pool, id: string) {
-  return new CreateUrlsTableMigration(pool, id)
+export default function createPostgresUrlsMigration(
+  client: PgClient,
+  id: string,
+) {
+  return new CreateUrlsTableMigration(client, id)
 }

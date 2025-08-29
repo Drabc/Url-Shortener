@@ -1,10 +1,9 @@
 import { NextFunction, Request, Response } from 'express'
 
-import { InvalidUrlError } from '@domain/errors/invalid-url.error.js'
 import { logger } from '@infrastructure/logging/logger.js'
 import { config } from '@infrastructure/config/config.js'
-import { ApiError } from '@presentation/errors/api.error.js'
-import { ErrorType } from '@presentation/errors/error-types.js'
+import { BaseError, ErrorKinds } from '@shared/errors.js'
+import { toBaseError } from '@shared/normalize-error.js'
 
 /**
  * Middleware for handling errors in the application.
@@ -28,34 +27,15 @@ export function errorHandler(
 
   logger.error(err)
 
-  let normalizedError
-
-  // TODO: Add new errors and refactor this logic
-  if (err instanceof ApiError) {
-    normalizedError = err
-  } else if (err instanceof InvalidUrlError) {
-    normalizedError = new ApiError(err.message, ErrorType.INVALID_URL, 400, err)
-  } else if (err instanceof Error) {
-    normalizedError = new ApiError(
-      err.message,
-      ErrorType.INTERNAL_SERVER_ERROR,
-      500,
-      err,
-    )
-  } else {
-    normalizedError = new ApiError(
-      'Internal Server Error',
-      ErrorType.INTERNAL_SERVER_ERROR,
-      500,
-    )
-  }
+  const normalizedError = toBaseError(err)
 
   // Abstract if setup gets more complicated
   const stack = config.isDev ? normalizedError.stack?.split('\n') : undefined
-  res.status(normalizedError.statusCode).json({
+  const code = mapStatus(normalizedError)
+  res.status(code).json({
     error: {
       type: normalizedError.type,
-      code: normalizedError.statusCode,
+      code: code,
       message: normalizedError.message,
       details: {
         stack,
@@ -63,4 +43,22 @@ export function errorHandler(
       },
     },
   })
+}
+
+/**
+ * Maps a BaseError kind to the corresponding HTTP status code.
+ * @param {BaseError} e - The application error to map.
+ * @returns {number} HTTP status code representing the error kind.
+ */
+function mapStatus(e: BaseError): number {
+  switch (e.kind) {
+    case ErrorKinds.validation:
+      return 422
+    case ErrorKinds.conflict:
+      return 409
+    case ErrorKinds.domain:
+    case ErrorKinds.system:
+    default:
+      return 500
+  }
 }

@@ -3,7 +3,6 @@ import { join } from 'path'
 import { pathToFileURL } from 'url'
 
 import { Db } from 'mongodb'
-import { Pool } from 'pg'
 
 import {
   Migration,
@@ -18,6 +17,7 @@ import { PersistenceConnections } from '@infrastructure/clients/persistence-conn
 import type { ClientMap, ClientValue } from '@infrastructure/clients/types.js'
 import { MONGO_CLIENT, POSTGRES_CLIENT } from '@infrastructure/constants.js'
 import { PostgresMigrationPlan } from '@infrastructure/db/migrations/plans/postgres-migration-plan.js'
+import { PgClient } from '@infrastructure/clients/pg-client.js'
 
 // OK to use sync as this happens before server starts listening
 type FsLike = {
@@ -35,7 +35,7 @@ type MigrationFactoryModule<T extends ClientValue> = {
 
 const SUPPORTED_TYPES = [MONGO_CLIENT, POSTGRES_CLIENT] as const
 type SupportedType = (typeof SUPPORTED_TYPES)[number]
-type SupportedClient = Db | Pool
+type SupportedClient = Db | PgClient
 /**
  * MigrationPlanner is responsible for planning migrations based on the active clients and the
  * available migration files in the specified path.
@@ -198,11 +198,11 @@ export class MigrationPlanner {
 
   /**
    * Finds the latest applied migration in the Postgres 'meta.schema_migrations' table.
-   * @param {Pool} pool - The Postgres connection pool.
+   * @param {PgClient} client - The Postgres client.
    * @returns {Promise<string | null>} The migration ID of the latest migration, or null if none found.
    */
   private async findLatestPostgresMigration(
-    pool: Pool,
+    client: PgClient,
   ): Promise<string | null> {
     const query = `
       select id
@@ -210,7 +210,7 @@ export class MigrationPlanner {
       order by id desc
       limit 1
     `
-    const result = await pool.query<{ id: string }>(query)
+    const result = await client.query<{ id: string }>(query)
     return !!result.rowCount ? result.rows[0].id : null
   }
 
