@@ -1,31 +1,48 @@
+import { BaseError, ErrorKinds } from '../../shared/errors.js'
+
 /**
  * Persistence Error thrown when a short URL code already exists.
  * @param {string} shortCode - The short URL code that already exists.
- * @augments {Error}
+ * @augments {BaseError}
  */
-export class CodeExistsError extends Error {
+export class CodeExistsError extends BaseError {
   constructor(shortCode: string) {
-    super(`Short URL code "${shortCode}" already exists.`)
+    super(
+      ErrorKinds.conflict,
+      'CODE_EXISTS',
+      `Short URL code "${shortCode}" already exists.`,
+    )
+    this.name = 'CodeExistsError'
   }
 }
 
 /**
  * Persistence Error thrown when attempting to change an immutable short URL code.
- * @augments {Error}
+ * @augments {BaseError}
  */
-export class ImmutableCodeError extends Error {
+export class ImmutableCodeError extends BaseError {
   constructor() {
-    super('Short URL codes are immutable and cannot be changed once set.')
+    super(
+      ErrorKinds.conflict,
+      'IMMUTABLE_CODE',
+      'Short URL codes are immutable and cannot be changed once set.',
+    )
+    this.name = 'ImmutableCodeError'
   }
 }
 
 /**
  * Persistence Error thrown when attempting to create an entity that already exists.
  * @param {string} [entity='Entity'] - The name of the entity that already exists.
- * @augments {Error}
+ * @augments {BaseError}
  */
-export class EntityAlreadyExistsError extends Error {
+export class EntityAlreadyExistsError extends BaseError {
   constructor(entity: string = 'Entity') {
-    super(`${entity} already exists`)
+    super(
+      ErrorKinds.conflict,
+      'ENTITY_ALREADY_EXISTS',
+      `${entity} already exists`,
+    )
+    this.name = 'EntityAlreadyExistsError'
   }
 }
