@@ -1,4 +1,4 @@
-import { InvalidCodeError } from '@domain/errors/invalid-code.error.js'
+import { EmptyValueError } from '@domain/errors/empty-value.error.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { BaseEntity } from '@domain/entities/base-entity.js'
 
@@ -7,7 +7,7 @@ import { BaseEntity } from '@domain/entities/base-entity.js'
  * @param {string} id - The unique identifier for the short URL. Defaults to an empty string.
  * @param {string} code - The unique code for the short URL.
  * @param {ValidUrl} originalUrl - The original URL that is being shortened.
- * @throws {InvalidCodeError} Thrown if the code is empty.
+ * @throws {EmptyValueError} Thrown if the code is empty.
  */
 export class ShortUrl extends BaseEntity {
   /**
@@ -24,7 +24,7 @@ export class ShortUrl extends BaseEntity {
     private originalUrl: ValidUrl,
   ) {
     if (!code) {
-      throw new InvalidCodeError('Code must not be empty')
+      throw new EmptyValueError('Code must not be empty')
     }
 
     super(id)

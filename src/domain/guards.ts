@@ -1,4 +1,4 @@
-import { EmptyResourceError } from '@domain/errors/empty-resource.error.js'
+import { EmptyValueError } from '@domain/errors/empty-value.error.js'
 
 /**
  * Ensures that the provided value is not null, undefined, or an empty string.
@@ -11,6 +11,6 @@ export function requireNonEmpty(value: unknown, resource?: string) {
     value == undefined ||
     (typeof value === 'string' && value.trim() === '')
   ) {
-    throw new EmptyResourceError(resource)
+    throw new EmptyValueError(resource)
   }
 }

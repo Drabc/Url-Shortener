@@ -1,6 +1,6 @@
 import { User } from '@domain/entities/user.js'
 import { Email } from '@domain/value-objects/email.js'
-import { EmptyResourceError } from '@domain/errors/empty-resource.error.js'
+import { EmptyValueError } from '@domain/errors/empty-value.error.js'
 import { PasswordUpdateTimeError } from '@domain/errors/password-update-time.error.js'
 
 /**
@@ -47,7 +47,7 @@ describe('User Entity', () => {
 
   it('throws EmptyResourceError on empty first name', () => {
     const user = makeUser()
-    expect(() => (user.firstName = '')).toThrow(EmptyResourceError)
+    expect(() => (user.firstName = '')).toThrow(EmptyValueError)
   })
 
   it('updates last name with non-empty value', () => {
@@ -58,7 +58,7 @@ describe('User Entity', () => {
 
   it('throws EmptyResourceError on empty last name', () => {
     const user = makeUser()
-    expect(() => (user.lastName = '')).toThrow(EmptyResourceError)
+    expect(() => (user.lastName = '')).toThrow(EmptyValueError)
   })
 
   it('updates email using raw string', () => {
