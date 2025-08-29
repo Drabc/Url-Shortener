@@ -1,4 +1,4 @@
-import { BaseError, ErrorKinds } from 'shared/errors.js'
+import { BaseError, ErrorKinds } from '@shared/errors.js'
 
 /**
  * Domain error when provided password exceeds maximum byte size.

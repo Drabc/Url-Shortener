@@ -2,8 +2,8 @@ import { NextFunction, Request, Response } from 'express'
 
 import { logger } from '@infrastructure/logging/logger.js'
 import { config } from '@infrastructure/config/config.js'
-import { BaseError, ErrorKinds } from 'shared/errors.js'
-import { toBaseError } from 'shared/normalize-error.js'
+import { BaseError, ErrorKinds } from '@shared/errors.js'
+import { toBaseError } from '@shared/normalize-error.js'
 
 /**
  * Middleware for handling errors in the application.

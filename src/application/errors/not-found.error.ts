@@ -1,4 +1,4 @@
-import { BaseError, ErrorKinds } from 'shared/errors.js'
+import { BaseError, ErrorKinds } from '@shared/errors.js'
 
 /**
  * Error thrown when a requested resource cannot be found.

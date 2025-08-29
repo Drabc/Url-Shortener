@@ -1,4 +1,4 @@
-import { BaseError, ErrorKinds } from 'shared/errors.js'
+import { BaseError, ErrorKinds } from '@shared/errors.js'
 
 /**
  * Domain error for invalid email format or value.
