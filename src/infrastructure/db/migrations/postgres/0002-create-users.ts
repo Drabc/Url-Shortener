@@ -2,13 +2,17 @@ import { Migration } from '@infrastructure/db/migrations/types.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
 
 /**
- * Creates the 'app.short_urls' table in Postgres.
+ * Creates the 'app.users' table in Postgres.
  * Columns:
- *  - id uuid primary key default gen_random_uuid()
- *  - code text unique not null
- *  - original_url text not null
- *  - created_at timestamptz not null default now()
- *  - updated_at timestamptz not null default now()
+ * - id: UUID, primary key, default generated
+ * - first_name: text, not null
+ * - last_name: text, not null
+ * - email: citext, not null, unique
+ * - password_hash: text, not null
+ * - password_updated_at: timestamptz, not null, default now()
+ * - created_at: timestamptz, not null, default now()
+ * - updated_at: timestamptz, not null, default now()
+ * Also creates a trigger to update 'updated_at' on row updates.
  */
 class CreateUserMigration extends Migration<PgClient> {
   public constructor(ctx: PgClient, id: string) {
