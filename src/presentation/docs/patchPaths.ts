@@ -6,17 +6,12 @@ import { OpenAPIV3 } from 'openapi-types'
  * @param {string} prefix The prefix to add to each path.
  * @returns {OpenAPIV3.PathsObject} A new OpenAPI PathsObject with updated paths.
  */
-export function patchPaths(
-  original: OpenAPIV3.PathsObject,
-  prefix: string,
-): OpenAPIV3.PathsObject {
+export function patchPaths(original: OpenAPIV3.PathsObject, prefix: string): OpenAPIV3.PathsObject {
   return Object.fromEntries(
     Object.entries(original).map(([path, def]) => {
       // custom tag to exclude from patching
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (def as any)['x-unversioned']
-        ? [path, def]
-        : [`${prefix}${path}`, def]
+      return (def as any)['x-unversioned'] ? [path, def] : [`${prefix}${path}`, def]
     }),
   )
 }

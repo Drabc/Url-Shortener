@@ -43,21 +43,13 @@ describe('ShortenerService', () => {
 
       expect(shortenUrl).toEqual(expectedShortUrl)
       expect(mockNanoid).toHaveBeenCalledTimes(2)
-      expect(mockUrlStorageClient.save).toHaveBeenNthCalledWith(
-        1,
-        expect.any(ShortUrl),
-      )
-      expect(mockUrlStorageClient.save).toHaveBeenNthCalledWith(
-        2,
-        expect.any(ShortUrl),
-      )
+      expect(mockUrlStorageClient.save).toHaveBeenNthCalledWith(1, expect.any(ShortUrl))
+      expect(mockUrlStorageClient.save).toHaveBeenNthCalledWith(2, expect.any(ShortUrl))
     })
 
     it('should throw MaxCodeGenerationAttemptsError after max attempts', async () => {
       mockUrlStorageClient.save.mockRejectedValue(new CodeExistsError(nanoid))
-      await expect(service.shortenUrl(url)).rejects.toThrow(
-        MaxCodeGenerationAttemptsError,
-      )
+      await expect(service.shortenUrl(url)).rejects.toThrow(MaxCodeGenerationAttemptsError)
     })
   })
 

@@ -14,12 +14,7 @@ import { toBaseError } from '@shared/normalize-error.js'
  * @param {NextFunction} next - The next middleware function in the stack.
  * @returns {void}
  */
-export function errorHandler(
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): void {
   // If headers already sent, delegate to default Express handler to avoid double‑send exception
   if (res.headersSent) {
     return next(err)

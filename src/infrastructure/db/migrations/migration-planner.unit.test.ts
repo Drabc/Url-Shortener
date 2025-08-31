@@ -72,12 +72,8 @@ describe('MigrationPlanner', () => {
         withFileTypes: true,
       })
       expect(importerLike).toHaveBeenCalledTimes(2)
-      expect(importerLike).toHaveBeenCalledWith(
-        expect.stringContaining('0001-create-urls.ts'),
-      )
-      expect(importerLike).toHaveBeenCalledWith(
-        expect.stringContaining('0002-add-index.ts'),
-      )
+      expect(importerLike).toHaveBeenCalledWith(expect.stringContaining('0001-create-urls.ts'))
+      expect(importerLike).toHaveBeenCalledWith(expect.stringContaining('0002-add-index.ts'))
 
       expect(plans).toHaveLength(1)
     })
@@ -93,12 +89,8 @@ describe('MigrationPlanner', () => {
       })
       // Only the migration after the latest should be imported
       expect(importerLike).toHaveBeenCalledTimes(1)
-      expect(importerLike).toHaveBeenCalledWith(
-        expect.stringContaining('0002-add-index.ts'),
-      )
-      expect(importerLike).not.toHaveBeenCalledWith(
-        expect.stringContaining('0001-create-urls.ts'),
-      )
+      expect(importerLike).toHaveBeenCalledWith(expect.stringContaining('0002-add-index.ts'))
+      expect(importerLike).not.toHaveBeenCalledWith(expect.stringContaining('0001-create-urls.ts'))
 
       expect(plans).toHaveLength(1)
     })
@@ -124,9 +116,7 @@ describe('MigrationPlanner', () => {
         { name: '0002-add-index.ts', isFile: () => true },
       ])
 
-      await expect(planner.plans(connections)).rejects.toBeInstanceOf(
-        InvalidMigrationFilenameError,
-      )
+      await expect(planner.plans(connections)).rejects.toBeInstanceOf(InvalidMigrationFilenameError)
       expect(importerLike).not.toHaveBeenCalled()
     })
 

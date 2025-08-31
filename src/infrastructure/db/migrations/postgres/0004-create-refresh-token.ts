@@ -75,9 +75,6 @@ export class CreateRefreshToken extends Migration<PgClient> {
  * @param {string} id The unique migration id.
  * @returns {Migration<PgClient>} The migration instance.
  */
-export default function createRefreshToken(
-  ctx: PgClient,
-  id: string,
-): Migration<PgClient> {
+export default function createRefreshToken(ctx: PgClient, id: string): Migration<PgClient> {
   return new CreateRefreshToken(ctx, id)
 }

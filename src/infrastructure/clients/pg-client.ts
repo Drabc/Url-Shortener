@@ -20,10 +20,7 @@ export class PgClient {
    * @param {unknown[]} values Optional parameter values for the query.
    * @returns {Promise<T | null>} The first row if present, otherwise null.
    */
-  async findOne<T extends QueryResultRow>(
-    query: string,
-    values?: unknown[],
-  ): Promise<T | null> {
+  async findOne<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<T | null> {
     const result = await this.pool.query<T>(query, values)
     return result.rows[0] || null
   }
@@ -59,10 +56,7 @@ export class PgClient {
    * @param {unknown[]} [values] Optional parameter values for the query.
    * @returns {Promise<QueryResult<T>>} Full pg QueryResult containing rows and metadata.
    */
-  query<T extends QueryResultRow>(
-    query: string,
-    values?: unknown[],
-  ): Promise<QueryResult<T>> {
+  query<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<QueryResult<T>> {
     return this.pool.query(query, values)
   }
 }

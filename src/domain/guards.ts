@@ -7,10 +7,7 @@ import { EmptyValueError } from '@domain/errors/empty-value.error.js'
  * @throws EmptyResourceError if value is empty.
  */
 export function requireNonEmpty(value: unknown, resource?: string) {
-  if (
-    value == undefined ||
-    (typeof value === 'string' && value.trim() === '')
-  ) {
+  if (value == undefined || (typeof value === 'string' && value.trim() === '')) {
     throw new EmptyValueError(resource)
   }
 }

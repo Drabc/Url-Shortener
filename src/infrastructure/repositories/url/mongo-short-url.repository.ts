@@ -3,10 +3,7 @@ import { Collection, Db, Int32, MongoServerError, ObjectId } from 'mongodb'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import {
-  CodeExistsError,
-  ImmutableCodeError,
-} from '@infrastructure/errors/repository.error.js'
+import { CodeExistsError, ImmutableCodeError } from '@infrastructure/errors/repository.error.js'
 
 export type MongoShortUrl = {
   _id?: ObjectId

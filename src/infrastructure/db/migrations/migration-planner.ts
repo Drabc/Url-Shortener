@@ -4,10 +4,7 @@ import { pathToFileURL } from 'url'
 
 import { Db } from 'mongodb'
 
-import {
-  Migration,
-  MigrationPlan,
-} from '@infrastructure/db/migrations/types.js'
+import { Migration, MigrationPlan } from '@infrastructure/db/migrations/types.js'
 import { MongoMigrationPlan } from '@infrastructure/db/migrations/plans/mongo-migration-plan.js'
 import {
   InvalidMigrationFilenameError,
@@ -65,9 +62,7 @@ export class MigrationPlanner {
    * Use a modified version of clientRegistry that is specifically the
    * Supported db types
    */
-  async plans(
-    connections: PersistenceConnections,
-  ): Promise<MigrationPlan<SupportedClient>[]> {
+  async plans(connections: PersistenceConnections): Promise<MigrationPlan<SupportedClient>[]> {
     const activeClientKeys = connections.clientKeys.filter(
       (clientKey): clientKey is SupportedType =>
         SUPPORTED_TYPES.includes(clientKey as SupportedType),
@@ -80,23 +75,14 @@ export class MigrationPlanner {
           const client = connections.get(supportedClientKey)
           const latestMigrationId = await this.findLatestMongoMigration(client)
           return new MongoMigrationPlan(
-            await this.getMigrations(
-              supportedClientKey,
-              client,
-              latestMigrationId,
-            ),
+            await this.getMigrations(supportedClientKey, client, latestMigrationId),
             client,
           )
         } else if (supportedClientKey == POSTGRES_CLIENT) {
           const client = connections.get(supportedClientKey)
-          const latestMigrationId =
-            await this.findLatestPostgresMigration(client)
+          const latestMigrationId = await this.findLatestPostgresMigration(client)
           return new PostgresMigrationPlan(
-            await this.getMigrations(
-              supportedClientKey,
-              client,
-              latestMigrationId,
-            ),
+            await this.getMigrations(supportedClientKey, client, latestMigrationId),
             client,
           )
         }
@@ -128,15 +114,9 @@ export class MigrationPlanner {
 
     if (latestMigrationId) {
       const latestMigrationFileName = `${latestMigrationId}.ts`
-      const foundIndex = this.binarySearchMigrationIndex(
-        files,
-        latestMigrationFileName,
-      )
+      const foundIndex = this.binarySearchMigrationIndex(files, latestMigrationFileName)
       if (foundIndex === -1) {
-        throw new LatestMigrationFileNotFoundError(
-          latestMigrationFileName,
-          clientMigrationPath,
-        )
+        throw new LatestMigrationFileNotFoundError(latestMigrationFileName, clientMigrationPath)
       }
       startIndex = foundIndex + 1
     }
@@ -145,11 +125,8 @@ export class MigrationPlanner {
 
     return Promise.all(
       migrationsToRun.map(async (fileName) => {
-        const href = pathToFileURL(
-          join(clientMigrationPath, fileName.name),
-        ).href
-        const migrationModule =
-          await this.importer<MigrationFactoryModule<ClientMap[K]>>(href)
+        const href = pathToFileURL(join(clientMigrationPath, fileName.name)).href
+        const migrationModule = await this.importer<MigrationFactoryModule<ClientMap[K]>>(href)
         const migrationId = fileName.name.replace('.ts', '')
         return migrationModule.default(client, migrationId)
       }),
@@ -188,11 +165,7 @@ export class MigrationPlanner {
    */
   private async findLatestMongoMigration(db: Db): Promise<string | null> {
     const migrationsCollection = db.collection('migrations')
-    const latestMigration = await migrationsCollection
-      .find()
-      .sort({ ranOn: -1 })
-      .limit(1)
-      .next()
+    const latestMigration = await migrationsCollection.find().sort({ ranOn: -1 }).limit(1).next()
     return latestMigration ? latestMigration._id.toString() : null
   }
 
@@ -201,9 +174,7 @@ export class MigrationPlanner {
    * @param {PgClient} client - The Postgres client.
    * @returns {Promise<string | null>} The migration ID of the latest migration, or null if none found.
    */
-  private async findLatestPostgresMigration(
-    client: PgClient,
-  ): Promise<string | null> {
+  private async findLatestPostgresMigration(client: PgClient): Promise<string | null> {
     const query = `
       select id
       from meta.schema_migrations
@@ -220,10 +191,7 @@ export class MigrationPlanner {
    * @param {string} targetMigrationId - The migration file name to find.
    * @returns {number} The index of the target file, or -1 if not found.
    */
-  private binarySearchMigrationIndex(
-    sortedFiles: Dirent[],
-    targetMigrationId: string,
-  ): number {
+  private binarySearchMigrationIndex(sortedFiles: Dirent[], targetMigrationId: string): number {
     const convertFileNameToInt = (fileName: string): number => {
       const match = fileName.match(/^(\d+)-/)
 

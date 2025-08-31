@@ -72,9 +72,7 @@ describe('PostgresShortUrlRepository', () => {
       pg.insertOrThrow.mockRejectedValue(new EntityAlreadyExistsError())
       const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
 
-      await expect(repo.save(entity)).rejects.toBeInstanceOf(
-        EntityAlreadyExistsError,
-      )
+      await expect(repo.save(entity)).rejects.toBeInstanceOf(EntityAlreadyExistsError)
     })
 
     it('throws ImmutableCodeError when entity is already persisted', async () => {

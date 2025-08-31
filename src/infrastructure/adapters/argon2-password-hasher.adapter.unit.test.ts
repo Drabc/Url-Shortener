@@ -41,13 +41,9 @@ describe('Argon2PasswordHasher', () => {
 
       const ok = await hasher.verify('plain-pass', '$argon2id$hashvalue')
 
-      expect(lib.verify).toHaveBeenCalledWith(
-        '$argon2id$hashvalue',
-        'plain-pass',
-        {
-          secret: Buffer.from(pepper),
-        },
-      )
+      expect(lib.verify).toHaveBeenCalledWith('$argon2id$hashvalue', 'plain-pass', {
+        secret: Buffer.from(pepper),
+      })
       expect(ok).toBe(true)
     })
 
@@ -62,9 +58,7 @@ describe('Argon2PasswordHasher', () => {
     it('propagates errors from underlying verify', async () => {
       lib.verify.mockRejectedValue(new Error('verify-fail'))
 
-      await expect(hasher.verify('plain', 'hash')).rejects.toThrow(
-        'verify-fail',
-      )
+      await expect(hasher.verify('plain', 'hash')).rejects.toThrow('verify-fail')
     })
   })
 })

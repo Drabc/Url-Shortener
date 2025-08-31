@@ -39,8 +39,7 @@ function statusToKindType(status: number): { kind: ErrorKind; type: string } {
   if (status === 404) return { kind: ErrorKinds.not_found, type: 'NOT_FOUND' }
   if (status === 409) return { kind: ErrorKinds.conflict, type: 'CONFLICT' }
   if (status === 429) return { kind: ErrorKinds.rate_limit, type: 'RATE_LIMIT' }
-  if (status >= 400 && status < 500)
-    return { kind: ErrorKinds.validation, type: 'VALIDATION' }
+  if (status >= 400 && status < 500) return { kind: ErrorKinds.validation, type: 'VALIDATION' }
   if (status >= 500) return { kind: ErrorKinds.system, type: 'SYSTEM' }
   return { kind: ErrorKinds.unknown, type: 'UNKNOWN' }
 }

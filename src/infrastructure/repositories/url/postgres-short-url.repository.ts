@@ -34,8 +34,7 @@ export class PostgresShortUrlRepository implements IUrlRepository {
    * @returns {Promise<ShortUrl | null>} entity or null if not found
    */
   async findByCode(code: string): Promise<ShortUrl | null> {
-    const query =
-      'select id, code, original_url from app.short_urls where code = $1'
+    const query = 'select id, code, original_url from app.short_urls where code = $1'
     const row = await this.client.findOne<UrlRow>(query, [code])
 
     if (!row) {

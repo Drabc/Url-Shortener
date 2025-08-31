@@ -7,9 +7,7 @@ import { ShortenerController } from '@presentation/controllers/shortener.control
  * @param {ShortenerController} shortenerController - The controller to handle URL resolution logic.
  * @returns {Router} - The configured router for redirects.
  */
-export function createRedirectRoutes(
-  shortenerController: ShortenerController,
-): Router {
+export function createRedirectRoutes(shortenerController: ShortenerController): Router {
   const redirectRouter = Router()
 
   /**
@@ -44,10 +42,7 @@ export function createRedirectRoutes(
    *             schema:
    *               $ref: '#/components/schemas/ErrorFormat'
    */
-  redirectRouter.get(
-    '/:code',
-    shortenerController.resolve.bind(shortenerController),
-  )
+  redirectRouter.get('/:code', shortenerController.resolve.bind(shortenerController))
 
   return redirectRouter
 }

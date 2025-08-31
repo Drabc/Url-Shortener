@@ -1,9 +1,6 @@
 import { Db, Collection } from 'mongodb'
 
-import {
-  Migration,
-  MigrationPlan,
-} from '@infrastructure/db/migrations/types.js'
+import { Migration, MigrationPlan } from '@infrastructure/db/migrations/types.js'
 import {
   MigrationCommitError,
   MigrationLockAcquisitionError,
@@ -85,10 +82,7 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
       await this.locksCollection.findOneAndUpdate(
         {
           _id: MongoMigrationPlan.LOCK_KEY,
-          $or: [
-            { expiresAt: { $lte: now } },
-            { expiresAt: { $exists: false } },
-          ],
+          $or: [{ expiresAt: { $lte: now } }, { expiresAt: { $exists: false } }],
         },
         {
           $set: {
@@ -147,9 +141,7 @@ export class MongoMigrationPlan extends MigrationPlan<Db> {
    */
   private getLockTimes(): { now: Date; expiresAt: Date } {
     const now = new Date()
-    const expiresAt = new Date(
-      now.getTime() + MongoMigrationPlan.DEFAULT_LEASE_MS,
-    )
+    const expiresAt = new Date(now.getTime() + MongoMigrationPlan.DEFAULT_LEASE_MS)
 
     return { now, expiresAt }
   }

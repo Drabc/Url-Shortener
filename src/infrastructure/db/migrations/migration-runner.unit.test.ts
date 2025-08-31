@@ -2,10 +2,7 @@ import { Logger } from 'pino'
 import { Db } from 'mongodb'
 
 import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
-import {
-  Migration,
-  MigrationPlan,
-} from '@infrastructure/db/migrations/types.js'
+import { Migration, MigrationPlan } from '@infrastructure/db/migrations/types.js'
 import { MigrationRunner } from '@infrastructure/db/migrations/migration-runner.js'
 import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
 

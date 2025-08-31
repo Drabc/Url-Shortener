@@ -23,13 +23,7 @@ class CreateUrlsMigration extends Migration<Db> {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: [
-            'code',
-            'originalUrl',
-            'createdAt',
-            'updatedAt',
-            'schemaVersion',
-          ],
+          required: ['code', 'originalUrl', 'createdAt', 'updatedAt', 'schemaVersion'],
           properties: {
             code: {
               bsonType: 'string',

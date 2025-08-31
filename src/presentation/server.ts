@@ -33,15 +33,9 @@ bootstrap().catch((err) => {
  * Bootstraps the application
  */
 async function bootstrap() {
-  const persistenceConnections = await createPersistenceConnections(
-    config,
-    logger,
-  )
+  const persistenceConnections = await createPersistenceConnections(config, logger)
 
-  const migrationRunner = new MigrationRunner(
-    new MigrationPlanner(config.migrationsPath),
-    logger,
-  )
+  const migrationRunner = new MigrationRunner(new MigrationPlanner(config.migrationsPath), logger)
 
   logger.info('Checking for migrations...')
   await migrationRunner.run(persistenceConnections)
@@ -65,10 +59,7 @@ async function bootstrap() {
   const registerUser = new RegisterUser(userRepository, hasher, clock)
   const userController = new UserController(registerUser)
 
-  const shortenerService = new ShortenerService(
-    shortUrlRepository,
-    config.baseUrl,
-  )
+  const shortenerService = new ShortenerService(shortUrlRepository, config.baseUrl)
   const shortenerController = new ShortenerController(shortenerService)
 
   const apiRouter = createV1Router(

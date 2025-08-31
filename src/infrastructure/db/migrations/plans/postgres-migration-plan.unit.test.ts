@@ -36,9 +36,7 @@ describe('PostgresMigrationPlan', () => {
 
     it('throws MigrationCommitError when no row is affected', async () => {
       client.query.mockResolvedValue({ rowCount: 0 })
-      await expect(plan.commitMigration(migration)).rejects.toBeInstanceOf(
-        MigrationCommitError,
-      )
+      await expect(plan.commitMigration(migration)).rejects.toBeInstanceOf(MigrationCommitError)
     })
   })
 
@@ -51,16 +49,12 @@ describe('PostgresMigrationPlan', () => {
 
     it('throws MigrationLockAcquisitionError when no row is affected', async () => {
       client.query.mockResolvedValue({ rowCount: 0 })
-      await expect(plan.acquireLock()).rejects.toBeInstanceOf(
-        MigrationLockAcquisitionError,
-      )
+      await expect(plan.acquireLock()).rejects.toBeInstanceOf(MigrationLockAcquisitionError)
     })
 
     it('throws MigrationLockAcquisitionError when the query fails', async () => {
       client.query.mockRejectedValue(new Error('db boom'))
-      await expect(plan.acquireLock()).rejects.toBeInstanceOf(
-        MigrationLockAcquisitionError,
-      )
+      await expect(plan.acquireLock()).rejects.toBeInstanceOf(MigrationLockAcquisitionError)
     })
   })
 
@@ -89,9 +83,7 @@ describe('PostgresMigrationPlan', () => {
 
       // delete no-op
       client.query.mockResolvedValueOnce({ rowCount: 0 })
-      await expect(plan.releaseLock()).rejects.toBeInstanceOf(
-        MigrationLockReleaseError,
-      )
+      await expect(plan.releaseLock()).rejects.toBeInstanceOf(MigrationLockReleaseError)
     })
   })
 })

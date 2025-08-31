@@ -38,9 +38,7 @@ export class RedisShortUrlRepository implements IUrlRepository {
   async save(shortUrl: ShortUrl): Promise<void> {
     const response = await this.client.set(shortUrl.code, shortUrl.url, 'NX')
     if (!response) {
-      throw new CodeExistsError(
-        `Short URL code "${shortUrl.code}" already exists.`,
-      )
+      throw new CodeExistsError(`Short URL code "${shortUrl.code}" already exists.`)
     }
   }
 }

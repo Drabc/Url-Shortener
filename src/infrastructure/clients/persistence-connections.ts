@@ -173,10 +173,7 @@ export async function createPersistenceConnections(
  * @param {Logger} logger logger instance
  * @returns {ClientEntryOf<PgClient>} Connected Postgres client entry
  */
-function createPostgresEntry(
-  cfg: typeof config,
-  logger: Logger,
-): ClientEntryOf<PgClient> {
+function createPostgresEntry(cfg: typeof config, logger: Logger): ClientEntryOf<PgClient> {
   logger.info('Connecting to Postgres...')
   const pool = new Pool({
     user: cfg.postgresUser,
