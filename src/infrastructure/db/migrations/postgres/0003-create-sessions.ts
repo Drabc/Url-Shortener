@@ -40,9 +40,9 @@ class CreateSessions extends Migration<PgClient> {
         user_agent     text,
         status         auth.session_status NOT NULL DEFAULT 'active',
         last_used_at   timestamptz NOT NULL DEFAULT now(),
-        expired_at     timestamptz NOT NULL,
-        revoked_at     timestamptz,
-        revoked_reason text,
+        expires_at     timestamptz NOT NULL,
+        ended_at       timestamptz,
+        end_reason     text,
         created_at     timestamptz DEFAULT now(),
         updated_at     timestamptz DEFAULT now()
       );

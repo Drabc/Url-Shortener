@@ -60,7 +60,10 @@ export default defineConfig([
       // Add custom JSDoc tags for OpenAPI/Swagger
       'jsdoc/check-tag-names': ['warn', {
         definedTags: ['openapi','swagger']
-      }]
+      }],
+      'jsdoc/no-undefined-types': ['warn', {
+        definedTypes: ['Buffer']
+      }],
     },
 
     settings: {

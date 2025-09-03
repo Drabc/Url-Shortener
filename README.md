@@ -26,6 +26,10 @@ A production URL shortener of this size would normally pick one datastore and us
 ### Backend
 
 - Add Auth
+- Updates:
+  - Remove isPersisted from domain (should not have that semantic)
+  - replace base entity with identifiable interface.
+  - Remove short service in favor of use cases.
 - Separate persistence into anon (redis, fs) vs auth (mongo, postgres). Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
 - Rate limits anonymous vs account
 - Add integration tests
