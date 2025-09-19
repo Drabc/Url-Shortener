@@ -2,14 +2,14 @@ import { customAlphabet } from 'nanoid'
 
 import { NotFoundError } from '@application/errors/not-found.error.js'
 import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
-import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
 
 /**
  * Service for URL shortening and resolution.
- * @param {IUrlRepository} urlStorageClient - Repository for storing and retrieving short URLs.
+ * @param {IShortUrlRepository} urlStorageClient - Repository for storing and retrieving short URLs.
  * @param {string} baseUrl - The base URL for the shortened links.
  */
 export class ShortenerService {
@@ -20,7 +20,7 @@ export class ShortenerService {
   private readonly maxAttempts = 5
 
   constructor(
-    private urlStorageClient: IUrlRepository,
+    private urlStorageClient: IShortUrlRepository,
     private baseUrl: string,
   ) {}
 

@@ -19,6 +19,4 @@ const transport = config.isDev
     }
   : undefined
 
-export const logger: Logger = pino(
-  transport ? { ...options, transport } : options,
-)
+export const logger: Logger = pino(transport ? { ...options, transport } : options)

@@ -1,11 +1,4 @@
-import type {
-  Db,
-  Collection,
-  Document,
-  InsertOneResult,
-  UpdateResult,
-  WithId,
-} from 'mongodb'
+import type { Db, Collection, Document, InsertOneResult, UpdateResult, WithId } from 'mongodb'
 
 import { MongoMigrationPlan } from '@infrastructure/db/migrations/plans/mongo-migration-plan.js'
 import { Migration } from '@infrastructure/db/migrations/types.js'
@@ -72,9 +65,7 @@ describe('MongoMigrationPlan', () => {
         acknowledged: false,
       } as InsertOneResult<Document>)
 
-      await expect(plan.commitMigration(mig)).rejects.toBeInstanceOf(
-        MigrationCommitError,
-      )
+      await expect(plan.commitMigration(mig)).rejects.toBeInstanceOf(MigrationCommitError)
     })
   })
 
@@ -102,17 +93,13 @@ describe('MongoMigrationPlan', () => {
     it('throws MigrationLockAcquisitionError when underlying call fails', async () => {
       locksCollection.findOneAndUpdate.mockRejectedValue(new Error('db error'))
 
-      await expect(plan.acquireLock()).rejects.toBeInstanceOf(
-        MigrationLockAcquisitionError,
-      )
+      await expect(plan.acquireLock()).rejects.toBeInstanceOf(MigrationLockAcquisitionError)
     })
   })
 
   describe('renewLock()', () => {
     it('throws when called without acquiring a lock', async () => {
-      await expect(plan.renewLock()).rejects.toBeInstanceOf(
-        MigrationLockNotAcquiredError,
-      )
+      await expect(plan.renewLock()).rejects.toBeInstanceOf(MigrationLockNotAcquiredError)
     })
 
     it('renews the lock when acknowledged', async () => {
@@ -139,9 +126,7 @@ describe('MongoMigrationPlan', () => {
         acknowledged: false,
       } as UpdateResult)
 
-      await expect(plan.renewLock()).rejects.toBeInstanceOf(
-        MigrationLockRenewalError,
-      )
+      await expect(plan.renewLock()).rejects.toBeInstanceOf(MigrationLockRenewalError)
     })
   })
 
@@ -164,9 +149,7 @@ describe('MongoMigrationPlan', () => {
         acknowledged: false,
       } as UpdateResult)
 
-      await expect(plan.releaseLock()).rejects.toBeInstanceOf(
-        MigrationLockReleaseError,
-      )
+      await expect(plan.releaseLock()).rejects.toBeInstanceOf(MigrationLockReleaseError)
     })
   })
 })

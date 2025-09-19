@@ -51,9 +51,6 @@ class CreateUserMigration extends Migration<PgClient> {
  * @param {string} id - The migration identifier.
  * @returns {CreateUserMigration} A new CreateUserMigration instance.
  */
-export default function createUserMigration(
-  client: PgClient,
-  id: string,
-): CreateUserMigration {
+export default function createUserMigration(client: PgClient, id: string): CreateUserMigration {
   return new CreateUserMigration(client, id)
 }

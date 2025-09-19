@@ -34,9 +34,7 @@ describe('User Entity', () => {
     expect(user.lastName).toBe('Last')
     expect(user.email.value).toBe('user@example.com')
     expect(user.passwordHash).toBe('hash1')
-    expect(user.passwordUpdatedAt.toISOString()).toBe(
-      '2025-01-01T00:00:00.000Z',
-    )
+    expect(user.passwordUpdatedAt.toISOString()).toBe('2025-01-01T00:00:00.000Z')
   })
 
   it('updates first name with non-empty value', () => {
@@ -85,8 +83,6 @@ describe('User Entity', () => {
   it('changePasswordHash throws PasswordUpdateTimeError when timestamp not later', () => {
     const user = makeUser()
     const same = new Date('2025-01-01T00:00:00.000Z')
-    expect(() => user.changePasswordHash('hash2', same)).toThrow(
-      PasswordUpdateTimeError,
-    )
+    expect(() => user.changePasswordHash('hash2', same)).toThrow(PasswordUpdateTimeError)
   })
 })

@@ -2,10 +2,7 @@ import { Collection, Db, Int32, MongoServerError, ObjectId } from 'mongodb'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import {
-  CodeExistsError,
-  ImmutableCodeError,
-} from '@infrastructure/errors/repository.error.js'
+import { CodeExistsError, ImmutableCodeError } from '@infrastructure/errors/repository.error.js'
 import {
   MongoShortUrlRepository,
   MongoShortUrl,
@@ -94,11 +91,7 @@ describe('MongoShortUrlRepository', () => {
     })
 
     it('throws ImmutableCodeError when trying to save an already-persisted entity', async () => {
-      const entity = new ShortUrl(
-        'some-id',
-        'abc123',
-        new ValidUrl('https://ex.com'),
-      )
+      const entity = new ShortUrl('some-id', 'abc123', new ValidUrl('https://ex.com'))
 
       await expect(repo.save(entity)).rejects.toBeInstanceOf(ImmutableCodeError)
       expect(collection.insertOne).not.toHaveBeenCalled()

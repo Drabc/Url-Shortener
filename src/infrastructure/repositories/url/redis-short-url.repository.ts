@@ -2,15 +2,15 @@ import { Redis } from 'ioredis'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 
 /**
  * Redis implementation of the URL repository interface for storing and retrieving short URLs.
- * @implements {IUrlRepository}
+ * @implements {IShortUrlRepository}
  * @param {Redis} client - The Redis client instance used for database operations.
  */
-export class RedisShortUrlRepository implements IUrlRepository {
+export class RedisShortUrlRepository implements IShortUrlRepository {
   private client: Redis
 
   constructor(client: Redis) {
@@ -38,9 +38,7 @@ export class RedisShortUrlRepository implements IUrlRepository {
   async save(shortUrl: ShortUrl): Promise<void> {
     const response = await this.client.set(shortUrl.code, shortUrl.url, 'NX')
     if (!response) {
-      throw new CodeExistsError(
-        `Short URL code "${shortUrl.code}" already exists.`,
-      )
+      throw new CodeExistsError(`Short URL code "${shortUrl.code}" already exists.`)
     }
   }
 }

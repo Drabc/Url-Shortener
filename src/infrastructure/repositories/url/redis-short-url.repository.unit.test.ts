@@ -42,11 +42,7 @@ describe('RedisShortUrlRepository', () => {
       const shortUrl = { code, url: 'https://example.com' } as ShortUrl
       mockRedisClient.set.mockResolvedValue('OK') // Simulate successful save
       await repository.save(shortUrl)
-      expect(mockRedisClient.set).toHaveBeenCalledWith(
-        shortUrl.code,
-        shortUrl.url,
-        'NX',
-      )
+      expect(mockRedisClient.set).toHaveBeenCalledWith(shortUrl.code, shortUrl.url, 'NX')
     })
 
     it('should return an error if the code already exists', async () => {
@@ -54,11 +50,7 @@ describe('RedisShortUrlRepository', () => {
       mockRedisClient.set.mockResolvedValue(null) // Simulate that the code already exists
 
       await expect(repository.save(shortUrl)).rejects.toThrow(CodeExistsError)
-      expect(mockRedisClient.set).toHaveBeenCalledWith(
-        shortUrl.code,
-        shortUrl.url,
-        'NX',
-      )
+      expect(mockRedisClient.set).toHaveBeenCalledWith(shortUrl.code, shortUrl.url, 'NX')
     })
   })
 })

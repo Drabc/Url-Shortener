@@ -48,9 +48,6 @@ class CreateUrlsTableMigration extends Migration<PgClient> {
  * @param {string} id - migration identifier (e.g., 0001-create-urls)
  * @returns {CreateUrlsTableMigration} A new migration instance for creating the urls table
  */
-export default function createPostgresUrlsMigration(
-  client: PgClient,
-  id: string,
-) {
+export default function createPostgresUrlsMigration(client: PgClient, id: string) {
   return new CreateUrlsTableMigration(client, id)
 }

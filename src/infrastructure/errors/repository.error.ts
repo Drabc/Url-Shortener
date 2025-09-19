@@ -7,11 +7,7 @@ import { BaseError, ErrorKinds } from '../../shared/errors.js'
  */
 export class CodeExistsError extends BaseError {
   constructor(shortCode: string) {
-    super(
-      ErrorKinds.conflict,
-      'CODE_EXISTS',
-      `Short URL code "${shortCode}" already exists.`,
-    )
+    super(ErrorKinds.conflict, 'CODE_EXISTS', `Short URL code "${shortCode}" already exists.`)
     this.name = 'CodeExistsError'
   }
 }
@@ -38,11 +34,7 @@ export class ImmutableCodeError extends BaseError {
  */
 export class EntityAlreadyExistsError extends BaseError {
   constructor(entity: string = 'Entity') {
-    super(
-      ErrorKinds.conflict,
-      'ENTITY_ALREADY_EXISTS',
-      `${entity} already exists`,
-    )
+    super(ErrorKinds.conflict, 'ENTITY_ALREADY_EXISTS', `${entity} already exists`)
     this.name = 'EntityAlreadyExistsError'
   }
 }

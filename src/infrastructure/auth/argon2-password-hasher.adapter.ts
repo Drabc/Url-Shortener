@@ -1,6 +1,6 @@
 import * as argon2 from 'argon2'
 
-import { IPasswordHasher } from '@domain/ports/password-hasher.port.js'
+import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
 
 export type Argon2Like = Pick<typeof argon2, 'hash' | 'verify'>
 

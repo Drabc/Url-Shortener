@@ -1,7 +1,4 @@
-import {
-  Migration,
-  MigrationPlan,
-} from '@infrastructure/db/migrations/types.js'
+import { Migration, MigrationPlan } from '@infrastructure/db/migrations/types.js'
 import {
   MigrationCommitError,
   MigrationLockAcquisitionError,
@@ -48,9 +45,7 @@ export class PostgresMigrationPlan extends MigrationPlan<PgClient> {
    */
   public async acquireLock(): Promise<void> {
     const now = new Date()
-    const expiresAt = new Date(
-      now.getTime() + PostgresMigrationPlan.DEFAULT_LEASE_MS,
-    )
+    const expiresAt = new Date(now.getTime() + PostgresMigrationPlan.DEFAULT_LEASE_MS)
 
     // Try upsert only when not held or expired
     try {

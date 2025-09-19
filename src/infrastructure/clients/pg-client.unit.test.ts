@@ -17,9 +17,7 @@ describe('PgClient', () => {
       pool.query.mockResolvedValue({
         rows: [{ id: 1, name: 'row' }],
       })
-      const result = await client.findOne<{ id: number; name: string }>(
-        'SELECT 1',
-      )
+      const result = await client.findOne<{ id: number; name: string }>('SELECT 1')
       expect(result).toEqual({ id: 1, name: 'row' })
       expect(pool.query).toHaveBeenCalledWith('SELECT 1', undefined)
     })
@@ -34,24 +32,22 @@ describe('PgClient', () => {
   describe('insertOrThrow', () => {
     it('resolves when rowCount > 0', async () => {
       pool.query.mockResolvedValue({ rowCount: 1 })
-      await expect(
-        client.insertOrThrow('INSERT', ['a']),
-      ).resolves.toBeUndefined()
+      await expect(client.insertOrThrow('INSERT', ['a'])).resolves.toBeUndefined()
     })
 
     it('throws EntityAlreadyExistsError when rowCount is 0', async () => {
       pool.query.mockResolvedValue({ rowCount: 0 })
-      await expect(
-        client.insertOrThrow('INSERT', ['a']),
-      ).rejects.toBeInstanceOf(EntityAlreadyExistsError)
+      await expect(client.insertOrThrow('INSERT', ['a'])).rejects.toBeInstanceOf(
+        EntityAlreadyExistsError,
+      )
     })
 
     it('throws EntityAlreadyExistsError on unique violation code', async () => {
       const error = Object.assign(new Error('duplicate'), { code: '23505' })
       pool.query.mockRejectedValue(error)
-      await expect(
-        client.insertOrThrow('INSERT', ['a']),
-      ).rejects.toBeInstanceOf(EntityAlreadyExistsError)
+      await expect(client.insertOrThrow('INSERT', ['a'])).rejects.toBeInstanceOf(
+        EntityAlreadyExistsError,
+      )
     })
 
     it('re-throws unknown errors', async () => {

@@ -24,11 +24,7 @@ export class ClientInitializationError extends BaseError {
  */
 export class ClientNotRegisteredError extends BaseError {
   constructor(key: string) {
-    super(
-      ErrorKinds.system,
-      'CLIENT_NOT_REGISTERED',
-      `Client '${key}' has not been registered`,
-    )
+    super(ErrorKinds.system, 'CLIENT_NOT_REGISTERED', `Client '${key}' has not been registered`)
     this.name = 'ClientNotRegisteredError'
   }
 }
@@ -40,11 +36,7 @@ export class ClientNotRegisteredError extends BaseError {
  */
 export class UnsupportedClientKeyError extends BaseError {
   constructor(key: string) {
-    super(
-      ErrorKinds.system,
-      'UNSUPPORTED_CLIENT_KEY',
-      `Unsupported client key '${key}'`,
-    )
+    super(ErrorKinds.system, 'UNSUPPORTED_CLIENT_KEY', `Unsupported client key '${key}'`)
     this.name = 'UnsupportedClientKeyError'
   }
 }

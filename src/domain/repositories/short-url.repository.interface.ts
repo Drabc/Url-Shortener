@@ -1,7 +1,7 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 
-export interface IUrlRepository {
+export interface IShortUrlRepository {
   /**
    * Persists a short url
    * @param {ShortUrl} code The short url to save

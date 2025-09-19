@@ -43,10 +43,11 @@ export class BaseError extends Error {
 /**
  * SystemError represents unexpected internal failures (e.g. infrastructure, I/O) and wraps them in a consistent application error.
  * @param {string} [message] Optional message describing the system failure.
+ * @param {string} [stack] stacktrace
  * @augments {BaseError}
  */
 export class SystemError extends BaseError {
-  constructor(message?: string) {
-    super(ErrorKinds.system, 'SYSTEM', message)
+  constructor(message?: string, stack?: string) {
+    super(ErrorKinds.system, 'SYSTEM', message, stack)
   }
 }

@@ -13,9 +13,7 @@ export class MigrationCommitError extends Error {
  */
 export class MigrationLockAcquisitionError extends Error {
   constructor(details: string = '') {
-    super(
-      `Failed to acquire migration lock - another migration may be running\n${details}`,
-    )
+    super(`Failed to acquire migration lock - another migration may be running\n${details}`)
     this.name = 'MigrationLockAcquisitionError'
   }
 }

@@ -20,10 +20,7 @@ describe('PostgresUserRepository', () => {
       pg.findOne.mockResolvedValue(null)
       const result = await repo.findById('uuid')
       expect(result).toBeNull()
-      expect(pg.findOne).toHaveBeenCalledWith(
-        'select * from app.users u where u.id = $1',
-        ['uuid'],
-      )
+      expect(pg.findOne).toHaveBeenCalledWith('select * from app.users u where u.id = $1', ['uuid'])
     })
 
     it('maps row to User entity', async () => {
@@ -44,9 +41,39 @@ describe('PostgresUserRepository', () => {
       expect(result?.lastName).toBe('Last')
       expect(result?.email.value).toBe('user@example.com')
       expect(result?.passwordHash).toBe('hash')
-      expect(result?.passwordUpdatedAt.toISOString()).toBe(
-        '2025-01-02T00:00:00.000Z',
-      )
+      expect(result?.passwordUpdatedAt.toISOString()).toBe('2025-01-02T00:00:00.000Z')
+    })
+  })
+
+  describe('findByEmail()', () => {
+    it('returns null when no row found', async () => {
+      pg.findOne.mockResolvedValue(null)
+      const result = await repo.findByEmail('user@example.com')
+      expect(result).toBeNull()
+      expect(pg.findOne).toHaveBeenCalledWith('select * from app.users u where u.email = $1', [
+        'user@example.com',
+      ])
+    })
+
+    it('maps row to User entity when found', async () => {
+      const row: UserRow = {
+        id: '22222222-2222-2222-2222-222222222222',
+        first_name: 'First2',
+        last_name: 'Last2',
+        email: 'second@example.com',
+        password_hash: 'hash2',
+        password_updated_at: '2025-01-03T00:00:00.000Z',
+      }
+      pg.findOne.mockResolvedValue(row)
+
+      const result = await repo.findByEmail(row.email)
+      expect(result).toBeInstanceOf(User)
+      expect(result?.id).toBe(row.id)
+      expect(result?.firstName).toBe(row.first_name)
+      expect(result?.lastName).toBe(row.last_name)
+      expect(result?.email.value).toBe(row.email)
+      expect(result?.passwordHash).toBe(row.password_hash)
+      expect(result?.passwordUpdatedAt.toISOString()).toBe(row.password_updated_at)
     })
   })
 

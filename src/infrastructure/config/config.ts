@@ -1,8 +1,10 @@
 import { join } from 'path'
 
-import { cleanEnv, port, str, json } from 'envalid'
+import { cleanEnv, port, str, json, num } from 'envalid'
 
 import type { ClientKey } from '@infrastructure/clients/types.js'
+
+export type Config = typeof config
 
 const env = cleanEnv(process.env, {
   PORT: port({ default: 3000 }),
@@ -25,6 +27,18 @@ const env = cleanEnv(process.env, {
   POSTGRES_DB: str(),
   POSTGRES_HOST: str(),
   PEPPER: str({ desc: '16-32 bytes for hashing passwords' }),
+  SESSION_TTL: num({ desc: 'How long a session will be alive in days', default: 30 }),
+  SESSION_SECRET_LENGTH: num({
+    desc: 'How many bytes for generating session refresh token',
+    default: 16,
+  }),
+  REFRESH_TOKEN_SECRET: str({ desc: '16 byte string used to hash refresh tokens' }),
+  ACCESS_TOKEN_AUDIENCE: str({ default: 'urlShortenerAPI' }),
+  ACCESS_TOKEN_ISSUER: str({ default: 'urlShortenerAPI' }),
+  ACCESS_TOKEN_TTL: num({ desc: 'seconds token is active', default: 600 }),
+  ACCESS_TOKEN_PRIVATE_KEY: str(),
+  ACCESS_TOKEN_PUBLIC_KEY: str(),
+  ACCESS_TOKEN_ALGO: str({ default: 'EdDSA' }),
 })
 
 export const config = {
@@ -47,4 +61,13 @@ export const config = {
   postgresDb: env.POSTGRES_DB,
   postgresHost: env.POSTGRES_HOST,
   pepper: env.PEPPER,
+  sessionTtl: env.SESSION_TTL * 24 * 60 * 60, //days to seconds
+  sessionSecretLength: env.SESSION_SECRET_LENGTH,
+  refreshTokenSecret: env.REFRESH_TOKEN_SECRET,
+  accessTokenAudience: env.ACCESS_TOKEN_AUDIENCE,
+  accessTokenIssuer: env.ACCESS_TOKEN_ISSUER,
+  accessTokenTtl: env.ACCESS_TOKEN_TTL,
+  accessTokenPrivateKey: env.ACCESS_TOKEN_PRIVATE_KEY,
+  accessTokenPublicKey: env.ACCESS_TOKEN_PUBLIC_KEY,
+  accessTokenAlgo: env.ACCESS_TOKEN_ALGO,
 }
