@@ -1,12 +1,12 @@
-import { Digest } from '@domain/ports/token-digester.js'
+import { Digest } from '@domain/utils/token-digester.js'
 import { BaseEntity } from '@domain/entities/base-entity.js'
 
-type RefreshTokenStatus = 'active' | 'revoked' | 'expired' | 'reuse_detected' | 'rotated'
+export type RefreshTokenStatus = 'active' | 'revoked' | 'expired' | 'reuse_detected' | 'rotated'
 
 type NewRefreshTokenArgs = {
   sessionId: string
   userId: string
-  hash: string
+  hash: Buffer
   hashAlgo: string
   now: Date
   ttlSec: number
@@ -19,7 +19,7 @@ type RefreshTokenHydrationArgs = {
   id: string
   sessionId: string
   userId: string
-  hash: string
+  hash: Buffer
   hashAlgo: string
   status: RefreshTokenStatus
   issuedAt: Date
@@ -82,20 +82,33 @@ export class RefreshToken extends BaseEntity {
    * @param {RefreshTokenHydrationArgs} args refresh token data.
    * @returns {RefreshToken} Hydrated token instance.
    */
-  static hydrate(args: RefreshTokenHydrationArgs): RefreshToken {
+  static hydrate({
+    id,
+    sessionId,
+    userId,
+    hash,
+    hashAlgo,
+    status,
+    issuedAt,
+    expiresAt,
+    ip,
+    userAgent,
+    lastUsedAt,
+    previousTokenId,
+  }: RefreshTokenHydrationArgs): RefreshToken {
     return new RefreshToken(
-      args.id,
-      args.sessionId,
-      args.userId,
-      args.hash,
-      args.hashAlgo,
-      args.status,
-      args.issuedAt,
-      args.expiresAt,
-      args.lastUsedAt,
-      args.ip,
-      args.userAgent,
-      args.previousTokenId,
+      id,
+      sessionId,
+      userId,
+      hash,
+      hashAlgo,
+      status,
+      issuedAt,
+      expiresAt,
+      lastUsedAt,
+      ip,
+      userAgent,
+      previousTokenId,
     )
   }
 
@@ -129,7 +142,7 @@ export class RefreshToken extends BaseEntity {
     id: string,
     public readonly sessionId: string,
     public readonly userId: string,
-    hash: string,
+    hash: Buffer,
     hashAlgo: string,
     private _status: RefreshTokenStatus,
     public readonly issuedAt: Date,

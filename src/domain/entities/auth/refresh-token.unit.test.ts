@@ -4,7 +4,7 @@ describe('RefreshToken', () => {
   const base = {
     sessionId: 'sess-123',
     userId: 'user-456',
-    hash: 'hashed-token',
+    hash: Buffer.from('hashed-token'),
     hashAlgo: 'sha256',
     now: new Date('2025-08-31T10:00:00.000Z'),
     ttlSec: 7200,
@@ -19,7 +19,7 @@ describe('RefreshToken', () => {
       expect(t.id).toBe('')
       expect(t.sessionId).toBe(base.sessionId)
       expect(t.userId).toBe(base.userId)
-      expect(t.digest.value).toBe(base.hash)
+      expect(t.digest.value.equals(base.hash)).toBe(true)
       expect(t.digest.algo).toBe(base.hashAlgo)
       expect(t.status).toBe('active')
       expect(t.issuedAt.toISOString()).toBe(base.now.toISOString())
@@ -51,7 +51,7 @@ describe('RefreshToken', () => {
       expect(token.id).toBe('rt-1')
       expect(token.sessionId).toBe(base.sessionId)
       expect(token.userId).toBe(base.userId)
-      expect(token.digest.value).toBe(base.hash)
+      expect(token.digest.value.equals(base.hash)).toBe(true)
       expect(token.digest.algo).toBe(base.hashAlgo)
       expect(token.status).toBe('rotated')
       expect(token.issuedAt.toISOString()).toBe('2025-08-31T09:00:00.000Z')
@@ -65,7 +65,7 @@ describe('RefreshToken', () => {
   })
 
   describe('markRotated()', () => {
-    it('sets status to rotated, updates lastUsedAt, and stores previous token id', () => {
+    it('sets status to rotated and updates lastUsedAt', () => {
       const t = RefreshToken.fresh(base)
       const when = new Date('2025-08-31T10:30:00.000Z')
       t.markRotated(when)
@@ -97,6 +97,37 @@ describe('RefreshToken', () => {
       const t = RefreshToken.fresh(base)
       t.markExpired()
       expect(t.status).toBe('expired')
+    })
+  })
+
+  describe('isActive()', () => {
+    it('returns true for a freshly created token', () => {
+      const t = RefreshToken.fresh(base)
+      expect(t.isActive()).toBe(true)
+    })
+
+    it('returns false after rotation', () => {
+      const t = RefreshToken.fresh(base)
+      t.markRotated(new Date('2025-08-31T10:30:00.000Z'))
+      expect(t.isActive()).toBe(false)
+    })
+
+    it('returns false after revocation', () => {
+      const t = RefreshToken.fresh(base)
+      t.markRevoked()
+      expect(t.isActive()).toBe(false)
+    })
+
+    it('returns false after reuse detection', () => {
+      const t = RefreshToken.fresh(base)
+      t.markReused()
+      expect(t.isActive()).toBe(false)
+    })
+
+    it('returns false after expiry', () => {
+      const t = RefreshToken.fresh(base)
+      t.markExpired()
+      expect(t.isActive()).toBe(false)
     })
   })
 })

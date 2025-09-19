@@ -6,8 +6,8 @@ import {
   SessionExpiredError,
   RefreshTokenReuseDetectedError,
 } from '@domain/errors/session.errors.js'
-import { Digest, ITokenDigester } from '@domain/ports/token-digester.js'
-import { Clock } from '@application/shared/clock.js'
+import { Digest, ITokenDigester } from '@domain/utils/token-digester.js'
+import { PlainRefreshSecret } from '@domain/value-objects/plain-refresh-secret.js'
 
 describe('Session', () => {
   const base = {
@@ -17,12 +17,23 @@ describe('Session', () => {
     ttlSec: 3600,
     ip: '203.0.113.5',
     userAgent: 'jest-test',
-    tokenSpec: { digest: 'abc123digest', algo: 'sha256' },
+    plainSecret: PlainRefreshSecret.fromBytes(Buffer.from('abcdefghijklmnop')), // 16 bytes
+    expectedDigest: Buffer.from('abc123digest'),
   }
+
+  const digest = { value: base.expectedDigest, algo: 'sha256' }
 
   describe('start()', () => {
     it('creates an active session with computed expiresAt', () => {
-      const s = Session.start(base)
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest,
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
       expect(s.id).toBe('')
       expect(s.userId).toBe(base.userId)
       expect(s.clientId).toBe(base.clientId)
@@ -33,6 +44,12 @@ describe('Session', () => {
       expect(s.userAgent).toBe(base.userAgent)
       expect(s.endedAt).toBeUndefined()
       expect(s.endReason).toBeUndefined()
+      // initial refresh token
+      expect(s.tokens.length).toBe(1)
+      const first = s.tokens[0]
+      expect(first.status).toBe('active')
+      expect(first.digest.value.equals(base.expectedDigest)).toBe(true)
+      expect(first.digest.algo).toBe('sha256')
     })
   })
 
@@ -66,7 +83,15 @@ describe('Session', () => {
 
   describe('touch()', () => {
     it('updates lastUsedAt', () => {
-      const s = Session.start(base)
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest,
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
       const later = new Date('2025-08-31T12:30:00.000Z')
       s.touch(later)
       expect(s.lastUsedAt?.toISOString()).toBe(later.toISOString())
@@ -75,7 +100,15 @@ describe('Session', () => {
 
   describe('revoke()', () => {
     it('sets revoked fields and status; second revoke is no-op', () => {
-      const s = Session.start(base)
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest,
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
       const when = new Date('2025-08-31T12:10:00.000Z')
       s.revoke(when, 'logout')
       expect(s.status).toBe('revoked')
@@ -93,8 +126,8 @@ describe('Session', () => {
         id: overrides.id || 'rt-1',
         sessionId: overrides.sessionId || 'sess-1',
         userId: base.userId,
-        hash: base.tokenSpec.digest,
-        hashAlgo: base.tokenSpec.algo,
+        hash: base.expectedDigest,
+        hashAlgo: 'sha256',
         status: overrides.status || 'active',
         issuedAt: base.now,
         expiresAt: new Date(base.now.getTime() + base.ttlSec * 1000),
@@ -107,14 +140,12 @@ describe('Session', () => {
 
     const verifier = (matches: boolean): ITokenDigester => ({
       digest(): Digest {
-        return { value: 'ignored', algo: 'sha256' }
+        return { value: Buffer.from('ignored'), algo: 'sha256' }
       },
       verify(): boolean {
         return matches
       },
     })
-
-    const fixedClock = (d: Date): Clock => ({ now: () => d })
 
     it('rotates an active token successfully', () => {
       const active = makeToken()
@@ -129,12 +160,12 @@ describe('Session', () => {
         ip: base.ip,
         userAgent: base.userAgent,
       })
-      const newDigest: Digest = { value: 'new-hash', algo: 'sha256' }
+      const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
       s.rotateToken(
-        'presented',
+        Buffer.from('presented'),
         newDigest,
         verifier(true),
-        fixedClock(new Date('2025-08-31T12:10:00.000Z')),
+        new Date('2025-08-31T12:10:00.000Z'),
       )
       expect(active.status).toBe('rotated')
       expect(s.tokens.at(-1)?.previousTokenId).toBe(active.id)
@@ -154,9 +185,9 @@ describe('Session', () => {
         ip: base.ip,
         userAgent: base.userAgent,
       })
-      const newDigest: Digest = { value: 'new-hash', algo: 'sha256' }
+      const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
       expect(() =>
-        s.rotateToken('presented', newDigest, verifier(true), fixedClock(base.now)),
+        s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), base.now),
       ).toThrow(SessionNotActiveError)
     })
 
@@ -173,9 +204,9 @@ describe('Session', () => {
         ip: base.ip,
         userAgent: base.userAgent,
       })
-      const newDigest: Digest = { value: 'new-hash', algo: 'sha256' }
+      const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
       expect(() =>
-        s.rotateToken('presented', newDigest, verifier(true), fixedClock(base.now)),
+        s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), base.now),
       ).toThrow(NoActiveRefreshTokenError)
       expect(s.status).toBe('revoked')
       expect(s.endedAt).toBe(base.now)
@@ -197,9 +228,9 @@ describe('Session', () => {
         userAgent: base.userAgent,
       })
       const afterExpiry = new Date(expiresAt.getTime() + 1)
-      const newDigest: Digest = { value: 'new-hash', algo: 'sha256' }
+      const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
       expect(() =>
-        s.rotateToken('presented', newDigest, verifier(true), fixedClock(afterExpiry)),
+        s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), afterExpiry),
       ).toThrow(SessionExpiredError)
       expect(active.status).toBe('revoked')
       expect(s.status).toBe('expired')
@@ -221,9 +252,9 @@ describe('Session', () => {
         ip: base.ip,
         userAgent: base.userAgent,
       })
-      const newDigest: Digest = { value: 'new-hash', algo: 'sha256' }
+      const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
       expect(() =>
-        s.rotateToken('wrong', newDigest, verifier(false), fixedClock(base.now)),
+        s.rotateToken(Buffer.from('wrong'), newDigest, verifier(false), base.now),
       ).toThrow(RefreshTokenReuseDetectedError)
       expect(active.status).toBe('reuse_detected')
       expect(s.status).toBe('reuse_detected')

@@ -1,5 +1,5 @@
 import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
-import { Digest, ITokenDigester } from '@domain/ports/token-digester.js'
+import { Digest, ITokenDigester } from '@domain/utils/token-digester.js'
 import { BaseEntity } from '@domain/entities/base-entity.js'
 import {
   SessionNotActiveError,
@@ -7,26 +7,20 @@ import {
   SessionExpiredError,
   RefreshTokenReuseDetectedError,
 } from '@domain/errors/session.errors.js'
-import { Clock } from '@application/shared/clock.js'
 
-type SessionStatus = 'active' | 'revoked' | 'expired' | 'reuse_detected'
-
-type RefreshTokenSpec = {
-  digest: string
-  algo: string
-}
+export type SessionStatus = 'active' | 'revoked' | 'expired' | 'reuse_detected'
 
 type NewSessionArgs = {
   userId: string
   clientId: string
   now: Date
   ttlSec: number
-  tokenSpec: RefreshTokenSpec
+  digest: Digest
   ip?: string
   userAgent?: string
 }
 
-type RehydrateArgs = {
+export type SessionRehydrateArgs = {
   id: string
   userId: string
   clientId: string
@@ -74,51 +68,63 @@ export class Session extends BaseEntity {
    * @returns {Session} A new Session instance initialized with active status and
    *  computed expiration time.
    */
-  static start(args: NewSessionArgs): Session {
-    const expiresAt = new Date(args.now.getTime() + args.ttlSec * 1000)
+  static start({ userId, clientId, now, ttlSec, digest, ip, userAgent }: NewSessionArgs): Session {
+    const expiresAt = new Date(now.getTime() + ttlSec * 1000)
     const newToken = RefreshToken.fresh({
       sessionId: '',
-      userId: args.userId,
-      hash: args.tokenSpec.digest,
-      hashAlgo: args.tokenSpec.algo,
-      now: args.now,
-      ttlSec: args.ttlSec,
-      ip: args.ip,
-      userAgent: args.userAgent,
+      userId: userId,
+      hash: digest.value,
+      hashAlgo: digest.algo,
+      now: now,
+      ttlSec: ttlSec,
+      ip: ip,
+      userAgent: userAgent,
     })
 
     return new Session(
       '',
-      args.userId,
-      args.clientId,
+      userId,
+      clientId,
       expiresAt,
       STATUSES.active,
       [newToken],
-      args.ip,
-      args.userAgent,
-      args.now,
+      ip,
+      userAgent,
+      now,
     )
   }
 
   /**
    * Rehydrate an existing session from data.
-   * @param {RehydrateArgs} args Object containing full session state including id,
+   * @param {SessionRehydrateArgs} args Object containing full session state including id,
    *  user/client identifiers, status, timestamps, and optional metadata.
    * @returns {Session} A Session instance.
    */
-  static hydrate(args: RehydrateArgs): Session {
+  static hydrate({
+    id,
+    userId,
+    clientId,
+    status,
+    lastUsedAt,
+    expiresAt,
+    tokens,
+    ip,
+    userAgent,
+    endedAt,
+    endReason,
+  }: SessionRehydrateArgs): Session {
     return new Session(
-      args.id,
-      args.userId,
-      args.clientId,
-      args.expiresAt,
-      args.status,
-      args.tokens,
-      args.ip,
-      args.userAgent,
-      args.lastUsedAt,
-      args.endedAt,
-      args.endReason,
+      id,
+      userId,
+      clientId,
+      expiresAt,
+      status,
+      tokens,
+      ip,
+      userAgent,
+      lastUsedAt,
+      endedAt,
+      endReason,
     )
   }
 
@@ -189,17 +195,16 @@ export class Session extends BaseEntity {
   /**
    * Rotate the currently active refresh token, validating session status, expiration, and reuse attempts.
    * Throws specific errors when rotation is not permitted or security issues are detected.
-   * @param {string} presentedPlain Plain text refresh token presented by the client.
+   * @param {Buffer} presentedPlain Plain buffer refresh token presented by the client.
    * @param {Digest} newDigest Digest (hash + algorithm) for the newly issued refresh token.
    * @param {ITokenDigester} verifier Token digester used to verify the presented token against stored digest.
-   * @param {Clock} clock Clock dependency to obtain the current time.
+   * @param {Date} now The current time.
    * @throws {SessionNotActiveError} If the session is not active.
    * @throws {NoActiveRefreshTokenError} If no active refresh token exists for rotation.
    * @throws {SessionExpiredError} If the session has expired.
    * @throws {RefreshTokenReuseDetectedError} If token reuse (mismatch) is detected.
    */
-  rotateToken(presentedPlain: string, newDigest: Digest, verifier: ITokenDigester, clock: Clock) {
-    const now = clock.now()
+  rotateToken(presentedPlain: Buffer, newDigest: Digest, verifier: ITokenDigester, now: Date) {
     const activeToken = this._tokens.find((t) => t.isActive())
 
     if (this._status !== STATUSES.active) {
@@ -241,7 +246,6 @@ export class Session extends BaseEntity {
 
   /**
    * Revoke the session, updating status, timestamp, and reason.
-   * Throws if the session is already revoked.
    * @param {Date} now - Current timestamp when revocation occurs.
    * @param {string} reason - Explanation for revocation.
    */
