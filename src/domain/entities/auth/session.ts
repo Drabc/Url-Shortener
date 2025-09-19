@@ -125,6 +125,7 @@ export class Session extends BaseEntity {
       lastUsedAt,
       endedAt,
       endReason,
+      false,
     )
   }
 
@@ -180,8 +181,9 @@ export class Session extends BaseEntity {
     private _lastUsedAt?: Date,
     private _endedAt?: Date,
     private _endReason?: string,
+    isNew = true,
   ) {
-    super(id)
+    super(id, isNew)
   }
 
   /**

@@ -26,7 +26,7 @@ export class RedisShortUrlRepository implements IShortUrlRepository {
     const url = await this.client.get(code)
     if (!url) return null
     // Move to factory when more persistent objects are added
-    return new ShortUrl(code, code, new ValidUrl(url))
+    return new ShortUrl(code, code, new ValidUrl(url), false)
   }
 
   /**

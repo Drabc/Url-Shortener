@@ -1,15 +1,19 @@
 /**
  * Base entity class that provides a common structure for all entities.
  * @param {string} id - The unique identifier for the entity. Defaults to an empty string.
+ * @param {boolean} isNew - Whether the instance was newly created or loaded.
  */
 export abstract class BaseEntity {
-  constructor(public readonly id: string = '') {}
+  protected constructor(
+    public readonly id: string = '',
+    private readonly _isNew: boolean = true,
+  ) {}
 
   /**
-   * Checks if the entity has been persisted (i.e., has a non-empty ID).
-   * @returns {boolean} True if the entity has been persisted, false otherwise.
+   * Whether this entity instance is newly created in the current unit of work.
+   * @returns {boolean} True if new, otherwise false.
    */
-  public isPersisted(): boolean {
-    return !!this.id
+  public isNew(): boolean {
+    return this._isNew
   }
 }

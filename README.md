@@ -25,7 +25,6 @@ A production URL shortener of this size would normally pick one datastore and us
 
 ### Backend
 
-- Add Auth
 - Updates:
   - Remove isPersisted from domain (should not have that semantic)
   - replace base entity with identifiable interface.

@@ -41,9 +41,10 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
     }
 
     return new ShortUrl(
-      result._id ? result._id.toString() : '',
+      result._id!.toString(),
       result.code,
       new ValidUrl(result.originalUrl),
+      false,
     )
   }
 
@@ -55,7 +56,7 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
    * @returns {Promise<void>}
    */
   async save(entity: ShortUrl): Promise<void> {
-    if (entity.isPersisted()) {
+    if (!entity.isNew()) {
       throw new ImmutableCodeError()
     }
 

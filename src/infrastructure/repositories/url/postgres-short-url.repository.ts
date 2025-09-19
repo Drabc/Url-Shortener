@@ -40,8 +40,7 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
     if (!row) {
       return null
     }
-
-    return new ShortUrl(row.id, row.code, new ValidUrl(row.original_url))
+    return new ShortUrl(row.id, row.code, new ValidUrl(row.original_url), false)
   }
 
   /**
@@ -53,7 +52,7 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
    * @throws {ImmutableCodeError} if trying to save an already persisted entity
    */
   async save(code: ShortUrl): Promise<void> {
-    if (code.isPersisted()) {
+    if (!code.isNew()) {
       throw new ImmutableCodeError()
     }
 

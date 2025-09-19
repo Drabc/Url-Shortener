@@ -22,11 +22,11 @@ export class ShortUrl extends BaseEntity {
     public readonly id: string,
     public readonly code: string,
     private originalUrl: ValidUrl,
+    isNew: boolean = true,
   ) {
     if (!code) {
       throw new EmptyValueError('Code must not be empty')
     }
-
-    super(id)
+    super(id, isNew)
   }
 }

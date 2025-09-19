@@ -109,6 +109,7 @@ export class RefreshToken extends BaseEntity {
       ip,
       userAgent,
       previousTokenId,
+      false,
     )
   }
 
@@ -151,8 +152,9 @@ export class RefreshToken extends BaseEntity {
     public readonly ip?: string,
     public readonly userAgent?: string,
     private _previousTokenId?: string,
+    isNew = true,
   ) {
-    super(id)
+    super(id, isNew)
     this.digest = { value: hash, algo: hashAlgo }
   }
 
