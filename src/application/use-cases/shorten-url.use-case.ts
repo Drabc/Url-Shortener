@@ -1,6 +1,5 @@
 import { customAlphabet } from 'nanoid'
 
-import { NotFoundError } from '@application/errors/not-found.error.js'
 import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
@@ -8,11 +7,11 @@ import { ShortUrl } from '@domain/entities/short-url.js'
 import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
 
 /**
- * Service for URL shortening and resolution.
- * @param {IShortUrlRepository} urlStorageClient - Repository for storing and retrieving short URLs.
- * @param {string} baseUrl - The base URL for the shortened links.
+ * Use case responsible for generating and persisting a short URL.
+ * baseUrl: The base URL for the shortened links.
+ * repo: Repository for storing and retrieving short URLs.
  */
-export class ShortenerService {
+export class ShortenUrl {
   private nanoid = customAlphabet(
     '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
     10,
@@ -20,8 +19,8 @@ export class ShortenerService {
   private readonly maxAttempts = 5
 
   constructor(
-    private urlStorageClient: IShortUrlRepository,
-    private baseUrl: string,
+    private readonly repo: IShortUrlRepository,
+    private readonly baseUrl: string,
   ) {}
 
   /**
@@ -37,7 +36,7 @@ export class ShortenerService {
       const candidate = new ShortUrl('', code, new ValidUrl(originalUrl))
 
       try {
-        await this.urlStorageClient.save(candidate)
+        await this.repo.save(candidate)
         return `${this.baseUrl}/${code}`
       } catch (error: unknown) {
         if (error instanceof CodeExistsError) {
@@ -47,20 +46,5 @@ export class ShortenerService {
       }
     }
     throw new MaxCodeGenerationAttemptsError(this.maxAttempts)
-  }
-
-  /**
-   * Resolves a short code to its original URL.
-   * @param {string} code - The short code to resolve.
-   * @returns {Promise<string>} A promise that resolves to the original URL.
-   * @throws {NotFoundError} Thrown if the code does not exist in the storage.
-   */
-  async resolveUrl(code: string): Promise<string> {
-    const shortUrl = await this.urlStorageClient.findByCode(code)
-    if (!shortUrl) {
-      // TODO: Replace by an application error
-      throw new NotFoundError(`Code ${code}`)
-    }
-    return shortUrl.url
   }
 }

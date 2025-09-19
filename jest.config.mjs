@@ -13,6 +13,8 @@ export default {
   transform: {
     '^.+\\.[tj]sx?$': ['esbuild-jest', {format: 'cjs'}],
   },
+  // Allow transforming specific ESM modules inside node_modules (e.g. nanoid)
+  transformIgnorePatterns: ['/node_modules/(?!nanoid)'],
 
   // Where Jest should look for bare‐imported modules:
   moduleDirectories: ['node_modules', compilerOptions.baseUrl],
