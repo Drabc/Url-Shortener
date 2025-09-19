@@ -1,6 +1,6 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
-import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { NotFoundError } from '@application/errors/not-found.error.js'
 import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
 import { ShortenerService } from '@application/services/shortener.service.js'
@@ -18,14 +18,14 @@ describe('ShortenerService', () => {
   const expectedShortUrl: string = `${baseUrl}/${nanoid}`
   const url = 'https://example.com'
   let service: ShortenerService
-  let mockUrlStorageClient: jest.Mocked<IUrlRepository>
+  let mockUrlStorageClient: jest.Mocked<IShortUrlRepository>
 
   beforeEach(() => {
     jest.clearAllMocks()
     mockUrlStorageClient = {
       findByCode: jest.fn(),
       save: jest.fn(),
-    } as jest.Mocked<IUrlRepository>
+    } as jest.Mocked<IShortUrlRepository>
     service = new ShortenerService(mockUrlStorageClient, baseUrl)
   })
 
