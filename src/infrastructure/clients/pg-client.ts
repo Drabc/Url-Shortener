@@ -26,6 +26,18 @@ export class PgClient {
   }
 
   /**
+   * Executes a query expected to return zero or more rows.
+   * @template T Row type extending QueryResultRow.
+   * @param {string} query SQL query string.
+   * @param {unknown[]} [values] Optional parameter values for the query.
+   * @returns {Promise<T[]>} Array of rows (empty if none).
+   */
+  async findMany<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<T[]> {
+    const result = await this.pool.query<T>(query, values)
+    return result.rows
+  }
+
+  /**
    * Executes an insert query and throws EntityAlreadyExistsError on unique violation or when no rows were inserted.
    * @param {string} query SQL insert (or upsert) statement to execute.
    * @param {unknown[]} values Parameter values for the query.

@@ -34,15 +34,16 @@ export class CreateRefreshToken extends Migration<PgClient> {
         id           uuid                PRIMARY KEY DEFAULT gen_random_uuid(),
         session_id   uuid                NOT NULL REFERENCES auth.sessions(id) ON DELETE CASCADE,
         user_id      uuid                NOT NULL REFERENCES app.users(id) ON DELETE CASCADE,
-        hash         TEXT                NOT NULL,
+        hash         bytea               NOT NULL,
         hash_algo    TEXT                NOT NULL DEFAULT 'HMAC-SHA256',
         status       auth.refresh_status NOT NULL DEFAULT 'active',
-        prev_token   uuid                NOT NULL REFERENCES auth.refresh_tokens,
+        prev_token   uuid                REFERENCES auth.refresh_tokens,
         issued_at    timestamptz         NOT NULL DEFAULT now(),
-        expired_at   timestamptz         NOT NULL,
         last_used_at timestamptz,
         ip inet,
         user_agent text
+        created_at   timestamptz DEFAULT now(),
+        updated_at   timestamptz DEFAULT now()
       )
     `)
 

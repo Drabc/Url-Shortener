@@ -33,18 +33,18 @@ class CreateSessions extends Migration<PgClient> {
 
     await this.ctx.query(`
       CREATE TABLE IF NOT EXISTS auth.sessions (
-        id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id        uuid NOT NULL REFERENCES app.users(id) ON DELETE CASCADE,
-        client_id      text NOT NULL,
-        ip             inet,
-        user_agent     text,
-        status         auth.session_status NOT NULL DEFAULT 'active',
-        last_used_at   timestamptz NOT NULL DEFAULT now(),
-        expires_at     timestamptz NOT NULL,
-        ended_at       timestamptz,
-        end_reason     text,
-        created_at     timestamptz DEFAULT now(),
-        updated_at     timestamptz DEFAULT now()
+        id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id      uuid NOT NULL REFERENCES app.users(id) ON DELETE CASCADE,
+        client_id    text NOT NULL,
+        ip           inet NOT NULL,
+        user_agent   text,
+        status       auth.session_status NOT NULL DEFAULT 'active',
+        last_used_at timestamptz NOT NULL DEFAULT now(),
+        expires_at   timestamptz NOT NULL,
+        ended_at     timestamptz,
+        end_reason   text,
+        created_at   timestamptz DEFAULT now(),
+        updated_at   timestamptz DEFAULT now()
       );
     `)
 
