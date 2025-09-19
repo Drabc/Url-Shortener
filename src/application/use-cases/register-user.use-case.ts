@@ -1,6 +1,6 @@
-import { IPasswordHasher } from '@domain/ports/password-hasher.port.js'
+import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
 import { IUserRepository } from '@domain/repositories/user.repository.interface.js'
-import { UserDTO } from '@application/use-cases/dtos.js'
+import { UserDTO } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
 import { Clock } from '@application/shared/clock.js'
 
