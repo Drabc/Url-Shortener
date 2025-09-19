@@ -5,3 +5,9 @@ export type UserDTO = {
   email: string
   password: string
 }
+
+export type FingerPrint = {
+  readonly clientId: string
+  readonly ip: string
+  readonly rawUa: string
+}
