@@ -30,6 +30,8 @@ A production URL shortener of this size would normally pick one datastore and us
   - Remove isPersisted from domain (should not have that semantic)
   - replace base entity with identifiable interface.
   - Remove short service in favor of use cases.
+- Add transaction context (middleware based on verb)
+- Ability for users to create urls
 - Separate persistence into anon (redis, fs) vs auth (mongo, postgres). Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
 - Rate limits anonymous vs account
 - Add integration tests
@@ -37,6 +39,7 @@ A production URL shortener of this size would normally pick one datastore and us
 - Fold in migration initial setup
 
 #### Stretch
+- Abstract SQL into pgClient
 - Add migration helpers e.g. create-db, migrate, etc (prod should auto migrate while dev should be triggered)
 - Add file system repo as a counterpart to Redis
 - Add different code generation strategies
