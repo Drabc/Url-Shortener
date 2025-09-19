@@ -25,7 +25,7 @@ export function toBaseError(err: unknown): BaseError {
     const { kind, type } = statusToKindType(e.status)
     return new BaseError(kind, type, e.message, e.stack)
   }
-  return new SystemError()
+  return new SystemError(e.message, e.stack)
 }
 
 /**
