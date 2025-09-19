@@ -1,13 +1,18 @@
 import { Request, Response } from 'express'
 
-import { ShortenerService } from '@application/services/shortener.service.js'
+import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
+import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
 
 /**
  * Controller for handling URL shortening and resolution requests.
- * @param {ShortenerService} shortenerService - The service for URL shortening and resolution.
+ * @param {ShortenUrl} shortenUrlUC - Use case for creating shortened URLs.
+ * @param {ResolveUrl} resolveUrlUC - Use case for resolving short codes to original URLs.
  */
 export class ShortenerController {
-  constructor(private shortenerService: ShortenerService) {}
+  constructor(
+    private readonly shortenUrlUC: ShortenUrl,
+    private readonly resolveUrlUC: ResolveUrl,
+  ) {}
 
   /**
    * Handles the request to shorten a URL.
@@ -16,7 +21,7 @@ export class ShortenerController {
    */
   public async shorten(req: Request, res: Response) {
     const { url } = req.body
-    res.status(201).send({ shortUrl: await this.shortenerService.shortenUrl(url) })
+    res.status(201).send({ shortUrl: await this.shortenUrlUC.shortenUrl(url) })
   }
 
   /**
@@ -27,7 +32,7 @@ export class ShortenerController {
   public async resolve(req: Request, res: Response) {
     // Validate format based on code generator
     const code = req.params.code
-    const redirectUrl = await this.shortenerService.resolveUrl(code)
+    const redirectUrl = await this.resolveUrlUC.resolveUrl(code)
     res.redirect(redirectUrl)
   }
 }

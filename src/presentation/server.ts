@@ -7,7 +7,8 @@ import { createV1Router } from '@presentation/routes/v1.routes.js'
 import { createRedirectRoutes } from '@presentation/routes/redirect.routes.js'
 import { createAuthRouter } from '@presentation/routes/auth.routes.js'
 import { AuthController } from '@presentation/controllers/auth.controller.js'
-import { ShortenerService } from '@application/services/shortener.service.js'
+import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
+import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { clock } from '@application/shared/clock.js'
 import { config } from '@infrastructure/config/config.js'
@@ -95,8 +96,9 @@ async function bootstrap() {
   )
   const authController = new AuthController(registerUser, loginUser, config.isDev)
 
-  const shortenerService = new ShortenerService(shortUrlRepository, config.baseUrl)
-  const shortenerController = new ShortenerController(shortenerService)
+  const shortenUrlUC = new ShortenUrl(shortUrlRepository, config.baseUrl)
+  const resolveUrlUC = new ResolveUrl(shortUrlRepository)
+  const shortenerController = new ShortenerController(shortenUrlUC, resolveUrlUC)
 
   const apiRouter = createV1Router(
     createShortenerRouter(shortenerController),
