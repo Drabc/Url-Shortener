@@ -25,21 +25,19 @@ export class PostgresUserRepository implements IUserRepository {
    */
   async findById(id: string): Promise<User | null> {
     const query = 'select * from app.users u where u.id = $1'
-
     const row = await this.client.findOne<UserRow>(query, [id])
+    return this.createFromRow(row)
+  }
 
-    if (!row) {
-      return null
-    }
-
-    return new User(
-      row.id,
-      row.first_name,
-      row.last_name,
-      row.email,
-      row.password_hash,
-      new Date(row.password_updated_at),
-    )
+  /**
+   * Finds a user by their unique email address.
+   * @param {string} email The user's email.
+   * @returns {Promise<User | null>} A User instance if a matching email is found; otherwise null.
+   */
+  async findByEmail(email: string): Promise<User | null> {
+    const query = 'select * from app.users u where u.email = $1'
+    const row = await this.client.findOne<UserRow>(query, [email])
+    return this.createFromRow(row)
   }
 
   /**
@@ -62,5 +60,23 @@ export class PostgresUserRepository implements IUserRepository {
       user.passwordHash,
       user.passwordUpdatedAt,
     ])
+  }
+
+  /**
+   * Creates a User domain entity from a database row.
+   * @param {UserRow | null} row Database row returned from users table (or null).
+   * @returns {User | null} Instantiated User or null if the provided row is null.
+   */
+  private createFromRow(row: UserRow | null): User | null {
+    if (!row) return null
+
+    return new User(
+      row.id,
+      row.first_name,
+      row.last_name,
+      row.email,
+      row.password_hash,
+      new Date(row.password_updated_at),
+    )
   }
 }
