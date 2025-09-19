@@ -1,10 +1,12 @@
+import { importPKCS8, importSPKI } from 'jose'
+
 import { createApp } from '@presentation/app.js'
 import { ShortenerController } from '@presentation/controllers/shortener.controller.js'
 import { createShortenerRouter } from '@presentation/routes/shortener.routes.js'
 import { createV1Router } from '@presentation/routes/v1.routes.js'
 import { createRedirectRoutes } from '@presentation/routes/redirect.routes.js'
-import { createUserRouter } from '@presentation/routes/user.routes.js'
-import { UserController } from '@presentation/controllers/users.controller.js'
+import { createAuthRouter } from '@presentation/routes/auth.routes.js'
+import { AuthController } from '@presentation/controllers/auth.controller.js'
 import { ShortenerService } from '@application/services/shortener.service.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { clock } from '@application/shared/clock.js'
@@ -22,7 +24,12 @@ import {
 // import { MongoShortUrlRepository } from '@infrastructure/repositories/url/mongo-short-url.repository.js'
 import { PostgresShortUrlRepository } from '@infrastructure/repositories/url/postgres-short-url.repository.js'
 import { PostgresUserRepository } from '@infrastructure/repositories/user/postgres-user.repository.js'
-import { Argon2PasswordHasher } from '@infrastructure/adapters/argon2-password-hasher.adapter.js'
+import { Argon2PasswordHasher } from '@infrastructure/auth/argon2-password-hasher.adapter.js'
+import { LoginUser } from '@application/use-cases/login-user.use-case.js'
+import { HmacTokenDigester } from '@infrastructure/auth/hmac-token-digester.js'
+import { RefreshSecretGenerator } from '@infrastructure/auth/refresh-secret-generator.js'
+import { JwtService } from '@infrastructure/auth/jwt.service.js'
+import { PostgresSessionRepository } from '@infrastructure/repositories/session/postgres-session.repository.js'
 
 bootstrap().catch((err) => {
   logger.error(err)
@@ -40,10 +47,13 @@ async function bootstrap() {
   logger.info('Checking for migrations...')
   await migrationRunner.run(persistenceConnections)
 
+  // TODO: Clean up deps definition
   // const mongoClient = persistenceConnections.get(MONGO_CLIENT)
   const postgresClient = persistenceConnections.get(POSTGRES_CLIENT)
   const shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
   const userRepository = new PostgresUserRepository(postgresClient)
+  const sessionRepo = new PostgresSessionRepository(postgresClient)
+  // const sessionRepo = new SessionRe
   // The below is to switch between clients
   // if (postgresClient) {
   // shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
@@ -55,16 +65,42 @@ async function bootstrap() {
   // )
   // }
 
+  const accessTokenPrivateKey = await importPKCS8(
+    config.accessTokenPrivateKey,
+    config.accessTokenAlgo,
+  )
+  const accessTokenPublicKey = await importSPKI(config.accessTokenPublicKey, config.accessTokenAlgo)
+
+  const jwtService = new JwtService(
+    config.accessTokenIssuer,
+    config.accessTokenAudience,
+    config.accessTokenAlgo,
+    config.accessTokenTtl,
+    accessTokenPrivateKey,
+    accessTokenPublicKey,
+    clock,
+    logger,
+  )
   const hasher = new Argon2PasswordHasher(config.pepper)
   const registerUser = new RegisterUser(userRepository, hasher, clock)
-  const userController = new UserController(registerUser)
+  const loginUser = new LoginUser(
+    hasher,
+    new HmacTokenDigester(config.refreshTokenSecret),
+    new RefreshSecretGenerator(),
+    jwtService,
+    sessionRepo,
+    userRepository,
+    clock,
+    config,
+  )
+  const authController = new AuthController(registerUser, loginUser)
 
   const shortenerService = new ShortenerService(shortUrlRepository, config.baseUrl)
   const shortenerController = new ShortenerController(shortenerService)
 
   const apiRouter = createV1Router(
     createShortenerRouter(shortenerController),
-    createUserRouter(userController),
+    createAuthRouter(authController),
   )
 
   const redirectRouter = createRedirectRoutes(shortenerController)
