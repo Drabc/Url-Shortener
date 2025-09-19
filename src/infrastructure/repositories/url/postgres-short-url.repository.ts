@@ -1,5 +1,5 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
-import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import {
   EntityAlreadyExistsError,
@@ -25,7 +25,7 @@ export type UrlRow = {
  *   updated_at timestamptz not null default now()
  * @param {PgClient} client - Postgres client
  */
-export class PostgresShortUrlRepository implements IUrlRepository {
+export class PostgresShortUrlRepository implements IShortUrlRepository {
   constructor(private readonly client: PgClient) {}
 
   /**

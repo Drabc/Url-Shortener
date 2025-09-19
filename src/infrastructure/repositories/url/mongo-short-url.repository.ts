@@ -1,7 +1,7 @@
 import { Collection, Db, Int32, MongoServerError, ObjectId } from 'mongodb'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
-import { IUrlRepository } from '@domain/repositories/url-repository.interface.js'
+import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { CodeExistsError, ImmutableCodeError } from '@infrastructure/errors/repository.error.js'
 
@@ -18,7 +18,7 @@ export type MongoShortUrl = {
  * Repository implementation for managing ShortUrl entities in MongoDB.
  * @param {Db} db the mongoDB handle
  */
-export class MongoShortUrlRepository implements IUrlRepository {
+export class MongoShortUrlRepository implements IShortUrlRepository {
   private collection: Collection<MongoShortUrl>
   private readonly version: Int32 = new Int32(1)
 
