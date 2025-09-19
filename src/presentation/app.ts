@@ -2,6 +2,7 @@ import express, { Express, Router, Request, Response } from 'express'
 import swaggerUi from 'swagger-ui-express'
 import OpenApiValidator from 'express-openapi-validator'
 import { OpenAPIV3 } from 'openapi-types'
+import cookieParser from 'cookie-parser'
 
 import { errorHandler } from '@presentation/middlewares/error-handler.middleware.js'
 import { swaggerSpec } from '@presentation/docs/swagger.js'
@@ -37,6 +38,7 @@ export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
   )
 
   // middlewares
+  app.use(cookieParser())
   app.use(express.json())
 
   app.use(

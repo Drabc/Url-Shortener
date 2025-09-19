@@ -19,6 +19,7 @@
     "@babel/preset-typescript": "^7.27.1",
     "@stylistic/eslint-plugin": "^5.2.3",
     "@tsconfig/node24": "^24.0.1",
+    "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/pg": "^8.15.5",
@@ -46,6 +47,7 @@
   },
   "dependencies": {
     "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
     "envalid": "^8.1.0",
     "express": "^5.1.0",
     "express-openapi-validator": "^5.5.8",
