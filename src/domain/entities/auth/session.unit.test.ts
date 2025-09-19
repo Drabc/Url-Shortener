@@ -262,4 +262,71 @@ describe('Session', () => {
       expect(s.endReason).toBeDefined()
     })
   })
+
+  describe('hasActiveRefreshToken()', () => {
+    const verifier = (expected: boolean): ITokenDigester => ({
+      digest(): Digest {
+        return { value: Buffer.from('unused'), algo: 'sha256' }
+      },
+      verify(): boolean {
+        return expected
+      },
+    })
+
+    it('returns true when session active and verifier matches active token', () => {
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest: { value: Buffer.from('x'), algo: 'sha256' },
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
+      expect(s.hasActiveRefreshToken(Buffer.from('plain'), verifier(true))).toBe(true)
+    })
+
+    it('returns false when session not active', () => {
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest: { value: Buffer.from('x'), algo: 'sha256' },
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
+      s.revoke(new Date(base.now.getTime() + 1000), 'test')
+      expect(s.hasActiveRefreshToken(Buffer.from('plain'), verifier(true))).toBe(false)
+    })
+
+    it('returns false when no active token exists', () => {
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest: { value: Buffer.from('x'), algo: 'sha256' },
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
+      // Simulate no active token by revoking it via rotation misuse path: mark token revoked
+      const token = s.tokens[0] as RefreshToken
+      token.markRevoked()
+      expect(s.hasActiveRefreshToken(Buffer.from('plain'), verifier(true))).toBe(false)
+    })
+
+    it('returns false when digest verification fails', () => {
+      const s = Session.start({
+        userId: base.userId,
+        clientId: base.clientId,
+        now: base.now,
+        ttlSec: base.ttlSec,
+        digest: { value: Buffer.from('x'), algo: 'sha256' },
+        ip: base.ip,
+        userAgent: base.userAgent,
+      })
+      expect(s.hasActiveRefreshToken(Buffer.from('plain'), verifier(false))).toBe(false)
+    })
+  })
 })

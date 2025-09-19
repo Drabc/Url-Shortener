@@ -1,0 +1,200 @@
+import { LoginUser } from '@application/use-cases/login-user.use-case.js'
+import { IUserRepository } from '@domain/repositories/user.repository.interface.js'
+import { ISessionRepository } from '@domain/repositories/session.repository.interface.js'
+import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
+import { ITokenDigester } from '@domain/utils/token-digester.js'
+import { IRefreshSecretGenerator } from '@application/ports/refresh-secret-generator.js'
+import { IJwtIssuer } from '@application/ports/jwt-issuer.js'
+import { FingerPrint } from '@application/dtos.js'
+import { User } from '@domain/entities/user.js'
+import { Session } from '@domain/entities/auth/session.js'
+import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
+import { InvalidCredentialsError } from '@application/errors/invalid-credentials.error.js'
+
+/**
+ * Tests for the LoginUser use case including newly added idempotent behavior when a refresh token is re-presented.
+ */
+describe('LoginUser.exec()', () => {
+  let passwordHasher: { verify: jest.Mock }
+  let tokenDigester: { digest: jest.Mock; verify: jest.Mock }
+  let refreshSecretGenerator: { generate: jest.Mock }
+  let jwtIssuer: { issue: jest.Mock }
+  let sessionRepo: { findActiveByUserId: jest.Mock; save: jest.Mock }
+  let userRepo: { findByEmail: jest.Mock }
+  let clock: { now: jest.Mock }
+  let config: { sessionSecretLength: number; sessionTtl: number }
+  let useCase: LoginUser
+
+  const fingerPrint: FingerPrint = {
+    clientId: 'client-1',
+    ip: '127.0.0.1',
+    rawUa: 'jest-test',
+  }
+
+  // Minimal Email value object substitute to avoid using any
+  const emailVo = { value: 'user@example.com' } as { value: string }
+  const user = new User('user-1', 'First', 'Last', emailVo, 'hash', new Date())
+
+  beforeEach(() => {
+    passwordHasher = { verify: jest.fn() }
+    tokenDigester = { digest: jest.fn(), verify: jest.fn() }
+    refreshSecretGenerator = { generate: jest.fn() }
+    jwtIssuer = { issue: jest.fn() }
+    sessionRepo = { findActiveByUserId: jest.fn(), save: jest.fn() }
+    userRepo = { findByEmail: jest.fn() }
+    clock = { now: jest.fn() }
+    config = { sessionSecretLength: 64, sessionTtl: 3600 }
+    useCase = new LoginUser(
+      passwordHasher as unknown as IPasswordHasher,
+      tokenDigester as unknown as ITokenDigester,
+      refreshSecretGenerator as unknown as IRefreshSecretGenerator,
+      jwtIssuer as unknown as IJwtIssuer,
+      sessionRepo as unknown as ISessionRepository,
+      userRepo as unknown as IUserRepository,
+      clock as { now: () => Date },
+      {
+        // minimal subset but widened to Config via unknown cast
+        sessionSecretLength: config.sessionSecretLength,
+        sessionTtl: config.sessionTtl,
+      } as unknown as import('@infrastructure/config/config.js').Config,
+    )
+  })
+
+  it('creates new session when no presented refresh token', async () => {
+    userRepo.findByEmail.mockResolvedValue(user)
+    passwordHasher.verify.mockResolvedValue(true)
+    const now = new Date('2025-01-01T00:00:00.000Z')
+    clock.now.mockReturnValue(now)
+
+    const generatedSecret = { value: Buffer.from('secret') }
+    refreshSecretGenerator.generate.mockReturnValue(generatedSecret)
+    tokenDigester.digest.mockReturnValue({ value: Buffer.from('digest'), algo: 'sha256' })
+    jwtIssuer.issue.mockResolvedValue('jwt-access')
+
+    const result = await useCase.exec('user@example.com', 'password', fingerPrint)
+
+    expect(result.accessToken).toBe('jwt-access')
+    expect(result.refreshToken).toBe(generatedSecret.value)
+    expect(sessionRepo.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns existing access (idempotent path) when presented refresh token matches active session token', async () => {
+    userRepo.findByEmail.mockResolvedValue(user)
+    passwordHasher.verify.mockResolvedValue(true)
+    const now = new Date('2025-01-01T00:00:00.000Z')
+    clock.now.mockReturnValue(now)
+
+    const activeSession = Session.start({
+      userId: user.id,
+      clientId: fingerPrint.clientId,
+      now,
+      ttlSec: 3600,
+      digest: { value: Buffer.from('digest'), algo: 'sha256' },
+      ip: fingerPrint.ip,
+      userAgent: fingerPrint.rawUa,
+    })
+
+    // Use internal mutation to ensure token digest aligns (simulate persisted state)
+    const activeToken = activeSession.tokens[0] as RefreshToken
+
+    sessionRepo.findActiveByUserId.mockResolvedValue([activeSession])
+    jwtIssuer.issue.mockResolvedValue('jwt-existing-access')
+    tokenDigester.verify.mockReturnValue(true)
+
+    const presented = Buffer.from('plain-refresh')
+
+    const result = await useCase.exec('user@example.com', 'password', fingerPrint, presented)
+
+    expect(result.accessToken).toBe('jwt-existing-access')
+    expect(result.refreshToken).toBe(presented)
+    expect(sessionRepo.save).not.toHaveBeenCalled()
+    expect(jwtIssuer.issue).toHaveBeenCalledTimes(1)
+    expect(tokenDigester.verify).toHaveBeenCalledWith(presented, activeToken.digest)
+  })
+
+  it('falls back to new session when presented refresh token does not match digest', async () => {
+    userRepo.findByEmail.mockResolvedValue(user)
+    passwordHasher.verify.mockResolvedValue(true)
+    const now = new Date('2025-01-01T00:00:00.000Z')
+    clock.now.mockReturnValue(now)
+
+    const activeSession = Session.start({
+      userId: user.id,
+      clientId: fingerPrint.clientId,
+      now,
+      ttlSec: 3600,
+      digest: { value: Buffer.from('digest1'), algo: 'sha256' },
+      ip: fingerPrint.ip,
+      userAgent: fingerPrint.rawUa,
+    })
+
+    sessionRepo.findActiveByUserId.mockResolvedValue([activeSession])
+    tokenDigester.verify.mockReturnValue(false)
+
+    const generatedSecret = { value: Buffer.from('new-secret') }
+    refreshSecretGenerator.generate.mockReturnValue(generatedSecret)
+    tokenDigester.digest.mockReturnValue({ value: Buffer.from('digest2'), algo: 'sha256' })
+    jwtIssuer.issue.mockResolvedValue('jwt-new-access')
+
+    const presented = Buffer.from('mismatch-token')
+
+    const result = await useCase.exec('user@example.com', 'password', fingerPrint, presented)
+
+    expect(result.accessToken).toBe('jwt-new-access')
+    expect(result.refreshToken).toBe(generatedSecret.value)
+    expect(sessionRepo.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores sessions from other clients when attempting idempotent path', async () => {
+    userRepo.findByEmail.mockResolvedValue(user)
+    passwordHasher.verify.mockResolvedValue(true)
+    const now = new Date('2025-01-01T00:00:00.000Z')
+    clock.now.mockReturnValue(now)
+
+    const otherClientSession = Session.start({
+      userId: user.id,
+      clientId: 'client-2',
+      now,
+      ttlSec: 3600,
+      digest: { value: Buffer.from('digest'), algo: 'sha256' },
+      ip: fingerPrint.ip,
+      userAgent: fingerPrint.rawUa,
+    })
+
+    sessionRepo.findActiveByUserId.mockResolvedValue([otherClientSession])
+    tokenDigester.verify.mockReturnValue(true) // would match if clientId were same
+
+    const generatedSecret = { value: Buffer.from('brand-new') }
+    refreshSecretGenerator.generate.mockReturnValue(generatedSecret)
+    tokenDigester.digest.mockReturnValue({ value: Buffer.from('digestX'), algo: 'sha256' })
+    jwtIssuer.issue.mockResolvedValue('jwt-brand-new')
+
+    const result = await useCase.exec(
+      'user@example.com',
+      'password',
+      fingerPrint,
+      Buffer.from('any'),
+    )
+
+    expect(result.accessToken).toBe('jwt-brand-new')
+    expect(result.refreshToken).toBe(generatedSecret.value)
+    expect(sessionRepo.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws InvalidCredentialsError when user not found', async () => {
+    userRepo.findByEmail.mockResolvedValue(null)
+
+    await expect(
+      useCase.exec('missing@example.com', 'password', fingerPrint),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError)
+  })
+
+  it('throws InvalidCredentialsError when password invalid', async () => {
+    userRepo.findByEmail.mockResolvedValue(user)
+    passwordHasher.verify.mockResolvedValue(false)
+
+    await expect(useCase.exec('user@example.com', 'bad', fingerPrint)).rejects.toBeInstanceOf(
+      InvalidCredentialsError,
+    )
+  })
+})

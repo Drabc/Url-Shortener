@@ -47,7 +47,18 @@ export class AuthController {
       rawUa: req.get('User-Agent') ?? '',
     }
 
-    const { accessToken, refreshToken } = await this.loginUser.exec(email, password, fp)
+    // Read previously issued refresh token (hex) if present to enable idempotent login path
+    const presentedRefreshHex = req.cookies?.['refresh-token'] as string | undefined
+    const presentedRefreshToken = presentedRefreshHex
+      ? Buffer.from(presentedRefreshHex, 'hex')
+      : undefined
+
+    const { accessToken, refreshToken } = await this.loginUser.exec(
+      email,
+      password,
+      fp,
+      presentedRefreshToken,
+    )
 
     // TODO: Use formatter for hex
     res.cookie('refresh-token', refreshToken.toString('hex'), {

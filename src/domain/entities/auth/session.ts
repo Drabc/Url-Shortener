@@ -245,6 +245,21 @@ export class Session extends BaseEntity {
   }
 
   /**
+   * Determine whether the presented plain refresh token matches the currently active refresh token
+   * (by verifying its digest) while the session itself is still active. This is a non-mutating check
+   * used for idempotent login flows where rotation is not desired.
+   * @param {Buffer} presentedPlain Plain (undigested) refresh token provided by the client.
+   * @param {ITokenDigester} verifier Token digester used to verify the presented token against stored digest.
+   * @returns {boolean} True if session status is active, an active refresh token exists, and digest verification succeeds.
+   */
+  hasActiveRefreshToken(presentedPlain: Buffer, verifier: ITokenDigester): boolean {
+    if (this._status !== STATUSES.active) return false
+    const activeToken = this._tokens.find((t) => t.isActive())
+    if (!activeToken) return false
+    return verifier.verify(presentedPlain, activeToken.digest)
+  }
+
+  /**
    * Revoke the session, updating status, timestamp, and reason.
    * @param {Date} now - Current timestamp when revocation occurs.
    * @param {string} reason - Explanation for revocation.

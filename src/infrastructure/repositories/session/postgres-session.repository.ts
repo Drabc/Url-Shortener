@@ -39,11 +39,11 @@ export class PostgresSessionRepository implements ISessionRepository {
    */
   async findActiveByUserId(userId: string): Promise<Session[]> {
     const query = `
-      select s.id, s.user_id, s.status, s.expires_at, rt.id as rt_id, rt.hash, rt.hash_algo, rt.status as rt_status
+      select s.id, s.user_id, s.status, s.expires_at, rt.id as rt_id, rt.hash, rt.hash_algo, rt.status as rt_status,
         rt.issued_at as rt_issued_at, rt.ip as rt_ip, rt.user_agent as rt_user_agent, rt.last_used_at as rt_last_used_at,
         rt.prev_token, s.ip, s.ended_at, s.end_reason, s.client_id
       from auth.sessions s
-      join auth.refresh_tokens rt on rt.session_id = rt.id
+      join auth.refresh_tokens rt on rt.session_id = s.id
       where s.user_id = $1
       and s.status = 'active'
       and rt.status = 'active'
@@ -90,7 +90,7 @@ export class PostgresSessionRepository implements ISessionRepository {
           id text,
           session_id uuid,
           user_id uuid,
-          digest_value bytea,
+          digest_value text,
           digest_algo text,
           status auth.refresh_status,
           previous_token_id uuid,
@@ -101,7 +101,9 @@ export class PostgresSessionRepository implements ISessionRepository {
         )
       )
       insert into auth.refresh_tokens (id, session_id, user_id, hash, hash_algo, status, prev_token, issued_at, last_used_at, ip, user_agent)
-      select COALESCE(NULLIF(id, '')::uuid, gen_random_uuid()), session_id, user_id, digest_value, digest_algo, status, previous_token_id, issued_at, last_used_at, ip, user_agent
+      select COALESCE(NULLIF(id, '')::uuid, gen_random_uuid()), session_id, user_id,
+      decode(digest_value, 'base64'), digest_algo, status, previous_token_id, issued_at, last_used_at,
+      ip, user_agent
       from input
       on conflict (id) do update
       set status = excluded.status,
@@ -117,7 +119,7 @@ export class PostgresSessionRepository implements ISessionRepository {
           id: token.id,
           session_id: rows[0].id,
           user_id: token.userId,
-          digest_value: token.digest.value,
+          digest_value: token.digest.value.toString('base64'),
           digest_algo: token.digest.algo,
           status: token.status,
           previous_token_id: token.previousTokenId,
