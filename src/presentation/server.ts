@@ -53,7 +53,7 @@ async function bootstrap() {
   const shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
   const userRepository = new PostgresUserRepository(postgresClient)
   const sessionRepo = new PostgresSessionRepository(postgresClient)
-  // const sessionRepo = new SessionRe
+
   // The below is to switch between clients
   // if (postgresClient) {
   // shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
@@ -93,7 +93,7 @@ async function bootstrap() {
     clock,
     config,
   )
-  const authController = new AuthController(registerUser, loginUser)
+  const authController = new AuthController(registerUser, loginUser, config.isDev)
 
   const shortenerService = new ShortenerService(shortUrlRepository, config.baseUrl)
   const shortenerController = new ShortenerController(shortenerService)

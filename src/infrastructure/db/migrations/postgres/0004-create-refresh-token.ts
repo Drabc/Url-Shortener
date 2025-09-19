@@ -41,7 +41,7 @@ export class CreateRefreshToken extends Migration<PgClient> {
         issued_at    timestamptz         NOT NULL DEFAULT now(),
         last_used_at timestamptz,
         ip inet,
-        user_agent text
+        user_agent text,
         created_at   timestamptz DEFAULT now(),
         updated_at   timestamptz DEFAULT now()
       )

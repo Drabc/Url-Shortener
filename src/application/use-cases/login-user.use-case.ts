@@ -12,7 +12,7 @@ import { InvalidCredentialsError } from '@application/errors/invalid-credentials
 
 type LoginResponse = {
   accessToken: string
-  refreshToken: Buffer<ArrayBufferLike>
+  refreshToken: Buffer
 }
 
 /**

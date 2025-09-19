@@ -12,7 +12,7 @@ export class AuthController {
   constructor(
     private registerUser: RegisterUser,
     private loginUser: LoginUser,
-    private isDev: boolean = true,
+    private isDev: boolean,
   ) {}
 
   /**
