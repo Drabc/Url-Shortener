@@ -80,6 +80,7 @@ describe('PostgresShortUrlRepository', () => {
         '11111111-1111-1111-1111-111111111111',
         'abc123',
         new ValidUrl('https://ex.com'),
+        false,
       )
 
       await expect(repo.save(entity)).rejects.toBeInstanceOf(ImmutableCodeError)
