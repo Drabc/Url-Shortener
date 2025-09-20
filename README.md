@@ -25,7 +25,6 @@ A production URL shortener of this size would normally pick one datastore and us
 
 ### Backend
 
-- Add transaction context (middleware based on verb)
 - Ability for users to create urls
 - Separate persistence into anon (redis, fs) vs auth (mongo, postgres). Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
 - Rate limits anonymous vs account
