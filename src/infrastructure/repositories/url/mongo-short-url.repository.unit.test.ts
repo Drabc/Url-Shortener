@@ -91,7 +91,7 @@ describe('MongoShortUrlRepository', () => {
     })
 
     it('throws ImmutableCodeError when trying to save an already-persisted entity', async () => {
-      const entity = new ShortUrl('some-id', 'abc123', new ValidUrl('https://ex.com'))
+      const entity = new ShortUrl('some-id', 'abc123', new ValidUrl('https://ex.com'), false)
 
       await expect(repo.save(entity)).rejects.toBeInstanceOf(ImmutableCodeError)
       expect(collection.insertOne).not.toHaveBeenCalled()

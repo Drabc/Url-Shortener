@@ -1,6 +1,11 @@
-import { Pool, QueryResult, QueryResultRow } from 'pg'
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg'
 
 import { EntityAlreadyExistsError } from '@infrastructure/errors/repository.error.js'
+import { getRunner, SqlRunnerFetcher, SqlUnitOfWork } from '@infrastructure/db/txContext.js'
+import {
+  PgTransactionBeginError,
+  PgTransactionCommitError,
+} from '@infrastructure/errors/pg-client.error.js'
 
 const PG_ERROR = {
   UNIQUE: '23505',
@@ -11,7 +16,10 @@ const PG_ERROR = {
  * @param {Pool} pool The pg Pool instance used to execute queries.
  */
 export class PgClient {
-  constructor(private pool: Pool) {}
+  constructor(
+    private pool: Pool,
+    private sqlRunnerFetcher: SqlRunnerFetcher = getRunner,
+  ) {}
 
   /**
    * Executes a query expected to return at most one row.
@@ -69,6 +77,52 @@ export class PgClient {
    * @returns {Promise<QueryResult<T>>} Full pg QueryResult containing rows and metadata.
    */
   query<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<QueryResult<T>> {
-    return this.pool.query(query, values)
+    const runner = this.sqlRunnerFetcher() ?? this.pool
+    return runner.query(query, values) as Promise<QueryResult<T>>
+  }
+
+  /**
+   * Starts a new database transaction and returns a unit of work for executing queries, committing or rolling back.
+   * @returns {Promise<SqlUnitOfWork>} Unit of work exposing query, commit and rollback helpers.
+   */
+  async begin(): Promise<SqlUnitOfWork> {
+    const client: PoolClient = await this.pool.connect()
+    try {
+      await client.query('BEGIN')
+    } catch (e) {
+      client.release()
+      throw new PgTransactionBeginError(e)
+    }
+    let finished = false
+    const releaseIfNeeded = () => {
+      if (!finished) {
+        finished = true
+        client.release()
+      }
+    }
+    return {
+      query: async <T>(text: string, params?: unknown[]) => {
+        const result = await client.query(text, params)
+        return { rows: result.rows as T[], rowCount: result.rowCount }
+      },
+      commit: async () => {
+        if (finished) return
+        try {
+          await client.query('COMMIT')
+        } catch (e) {
+          releaseIfNeeded()
+          throw new PgTransactionCommitError(e)
+        }
+        releaseIfNeeded()
+      },
+      rollback: async () => {
+        if (finished) return
+        try {
+          await client.query('ROLLBACK')
+        } finally {
+          releaseIfNeeded()
+        }
+      },
+    }
   }
 }
