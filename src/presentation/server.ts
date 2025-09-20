@@ -31,6 +31,7 @@ import { HmacTokenDigester } from '@infrastructure/auth/hmac-token-digester.js'
 import { RefreshSecretGenerator } from '@infrastructure/auth/refresh-secret-generator.js'
 import { JwtService } from '@infrastructure/auth/jwt.service.js'
 import { PostgresSessionRepository } from '@infrastructure/repositories/session/postgres-session.repository.js'
+import { PgUnitOfWork } from '@infrastructure/db/pg-unit-of-work.js'
 
 bootstrap().catch((err) => {
   logger.error(err)
@@ -54,6 +55,9 @@ async function bootstrap() {
   const shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
   const userRepository = new PostgresUserRepository(postgresClient)
   const sessionRepo = new PostgresSessionRepository(postgresClient)
+
+  // Transaction Boundary
+  const uow = new PgUnitOfWork(postgresClient)
 
   // The below is to switch between clients
   // if (postgresClient) {
@@ -102,7 +106,7 @@ async function bootstrap() {
 
   const apiRouter = createV1Router(
     createShortenerRouter(shortenerController),
-    createAuthRouter(authController),
+    createAuthRouter(authController, uow),
   )
 
   const redirectRouter = createRedirectRoutes(shortenerController)
