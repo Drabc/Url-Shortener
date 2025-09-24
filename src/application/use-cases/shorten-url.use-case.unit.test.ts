@@ -18,6 +18,7 @@ describe('ShortenUrl.shortenUrl()', () => {
   let repo: jest.Mocked<IShortUrlRepository>
   let useCase: ShortenUrl
   const baseUrl = 'http://short'
+  const userId = 'user-123'
 
   beforeEach(() => {
     mockCodes = []
@@ -38,6 +39,18 @@ describe('ShortenUrl.shortenUrl()', () => {
     expect(repo.save).toHaveBeenCalledTimes(1)
   })
 
+  it('returns user-owned shortened url when userId provided', async () => {
+    mockCodes.push('userCode1')
+    repo.save.mockResolvedValue(undefined)
+
+    const result = await useCase.shortenUrl('https://example.com/user', userId)
+
+    expect(result).toBe(`${baseUrl}/userCode1`)
+    expect(repo.save).toHaveBeenCalledTimes(1)
+    const entityArg = repo.save.mock.calls[0][0]
+    expect(entityArg.userId).toBe(userId)
+  })
+
   it('retries on collision until success', async () => {
     mockCodes.push('taken1', 'taken2', 'freeOk')
 
@@ -52,6 +65,20 @@ describe('ShortenUrl.shortenUrl()', () => {
     expect(repo.save).toHaveBeenCalledTimes(3)
   })
 
+  it('retries on collision for user-owned until success', async () => {
+    mockCodes.push('uDup1', 'uDup2', 'uFree')
+    repo.save.mockReset()
+    repo.save
+      .mockRejectedValueOnce(new CodeExistsError('uDup1'))
+      .mockRejectedValueOnce(new CodeExistsError('uDup2'))
+      .mockResolvedValueOnce(undefined)
+
+    const result = await useCase.shortenUrl('https://retry-owned.com', userId)
+    expect(result).toBe(`${baseUrl}/uFree`)
+    expect(repo.save).toHaveBeenCalledTimes(3)
+    repo.save.mock.calls.forEach((c) => expect(c[0].userId).toBe(userId))
+  })
+
   it('throws MaxCodeGenerationAttemptsError after max attempts', async () => {
     mockCodes.push('dup', 'dup', 'dup', 'dup', 'dup')
     repo.save.mockRejectedValue(new CodeExistsError('dup'))
@@ -60,5 +87,14 @@ describe('ShortenUrl.shortenUrl()', () => {
       MaxCodeGenerationAttemptsError,
     )
     expect(repo.save).toHaveBeenCalledTimes(5)
+  })
+
+  it('throws MaxCodeGenerationAttemptsError after max attempts for user-owned', async () => {
+    mockCodes.push('x1', 'x2', 'x3', 'x4', 'x5')
+    repo.save.mockRejectedValue(new CodeExistsError('x'))
+
+    await expect(useCase.shortenUrl('https://owned-fail.com', userId)).rejects.toBeInstanceOf(
+      MaxCodeGenerationAttemptsError,
+    )
   })
 })

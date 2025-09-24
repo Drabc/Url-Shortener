@@ -21,7 +21,7 @@ export class ShortenerController {
    */
   public async shorten(req: Request, res: Response) {
     const { url } = req.body
-    res.status(201).send({ shortUrl: await this.shortenUrlUC.shortenUrl(url) })
+    res.status(201).send({ shortUrl: await this.shortenUrlUC.shortenUrl(url, req.userId) })
   }
 
   /**

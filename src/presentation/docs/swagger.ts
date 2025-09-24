@@ -45,6 +45,17 @@ export const swaggerSpec = swaggerJSDoc({
           },
         },
       },
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description:
+            'Supply the access token in the Authorization header as: Bearer <token>'.concat(
+              config.isDev ? '\nIssued tokens are short-lived; refresh via auth endpoints.' : '',
+            ),
+        },
+      },
       responses: {
         SystemError: {
           description: 'System Error',

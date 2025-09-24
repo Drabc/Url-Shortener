@@ -18,10 +18,20 @@ export class ShortUrl extends BaseEntity {
     return this.originalUrl.value
   }
 
+  /**
+   * Identifier of the owning user, if this short url is user-owned.
+   * Anonymous short urls will have this value undefined.
+   * @returns {string | undefined} the user id or undefined
+   */
+  public get userId(): string | undefined {
+    return this._userId
+  }
+
   constructor(
     public readonly id: string,
     public readonly code: string,
     private originalUrl: ValidUrl,
+    private readonly _userId?: string,
     isNew: boolean = true,
   ) {
     if (!code) {

@@ -9,6 +9,7 @@ export type MongoShortUrl = {
   _id?: ObjectId
   code: string
   originalUrl: string
+  userId?: string
   createdAt: Date
   updatedAt: Date
   schemaVersion: Int32
@@ -44,6 +45,7 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
       result._id!.toString(),
       result.code,
       new ValidUrl(result.originalUrl),
+      result.userId,
       false,
     )
   }
@@ -63,6 +65,7 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
     const code = {
       code: entity.code,
       originalUrl: entity.url,
+      userId: entity.userId,
       createdAt: new Date(),
       updatedAt: new Date(),
       schemaVersion: this.version,

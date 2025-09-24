@@ -6,6 +6,7 @@ import { createShortenerRouter } from '@presentation/routes/shortener.routes.js'
 import { createV1Router } from '@presentation/routes/v1.routes.js'
 import { createRedirectRoutes } from '@presentation/routes/redirect.routes.js'
 import { createAuthRouter } from '@presentation/routes/auth.routes.js'
+import { createMeRouter } from '@presentation/routes/me.routes.js'
 import { AuthController } from '@presentation/controllers/auth.controller.js'
 import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
 import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
@@ -106,6 +107,7 @@ async function bootstrap() {
 
   const apiRouter = createV1Router(
     createShortenerRouter(shortenerController),
+    createMeRouter(shortenerController, jwtService),
     createAuthRouter(authController, uow),
   )
 
