@@ -19,7 +19,7 @@ class AddUserIdToShortUrlsMigration extends Migration<PgClient> {
   async up(): Promise<void> {
     await this.ctx.query(`
      ALTER TABLE app.short_urls
-      ADD COLUMN AFTER original_url IF NOT EXISTS user_id uuid NULL;
+      ADD COLUMN IF NOT EXISTS user_id uuid NULL;
     `)
 
     // Create index if not exists
