@@ -5,7 +5,7 @@ import { ShortenerController } from '@presentation/controllers/shortener.control
 /**
  * Creates a router for URL shortening operations.
  * @param {ShortenerController} controller - The controller to handle URL shortening logic.
- * @returns {Router} - The configured router for URL shortening.
+ * @returns {Router} - The configured router for public URL shortening.
  */
 export function createShortenerRouter(controller: ShortenerController): Router {
   const shortenerRouter = Router()
@@ -44,6 +44,8 @@ export function createShortenerRouter(controller: ShortenerController): Router {
    *          application/json:
    *            schema:
    *              $ref: '#/components/schemas/ErrorFormat'
+   *      '500':
+   *        $ref: '#/components/responses/SystemError'
    */
   shortenerRouter.post('/shorten', controller.shorten.bind(controller))
 
