@@ -26,14 +26,15 @@ export class ShortenUrl {
   /**
    * Attempts to generate and store a unique short code for the given URL, retrying on collisions.
    * @param {string} originalUrl - The full URL to shorten. Must be a valid URL string.
+   * @param {string | undefined} userId - Optional owner user id. When provided, the short url will be associated with this user.
    * @returns {Promise<string>} A promise that resolves to the full shortened URL (including base URL and code).
    * @throws {MaxCodeGenerationAttemptsError} Thrown if a unique code could not be generated within the configured maximum attempts.
    * @throws {Error} Re-throws any unexpected errors from the storage client (other than code-collision errors).
    */
-  async shortenUrl(originalUrl: string): Promise<string> {
+  async shortenUrl(originalUrl: string, userId?: string): Promise<string> {
     for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
       const code = this.nanoid()
-      const candidate = new ShortUrl('', code, new ValidUrl(originalUrl))
+      const candidate = new ShortUrl('', code, new ValidUrl(originalUrl), userId)
 
       try {
         await this.repo.save(candidate)

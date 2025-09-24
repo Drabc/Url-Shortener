@@ -36,6 +36,7 @@ describe('MongoShortUrlRepository', () => {
         _id: new ObjectId('66a6f8a0c0d5f0a1a1a1a1a1'),
         code: 'abc123',
         originalUrl: 'https://example.com',
+        userId: 'user-1',
         createdAt: new Date(),
         updatedAt: new Date(),
         schemaVersion: new Int32(1),
@@ -62,7 +63,7 @@ describe('MongoShortUrlRepository', () => {
 
   describe('save()', () => {
     it('inserts a new ShortUrl document when not persisted', async () => {
-      const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
+      const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'), 'user-42')
       collection.insertOne.mockResolvedValue({
         acknowledged: true,
         insertedId: new ObjectId(),
@@ -74,6 +75,7 @@ describe('MongoShortUrlRepository', () => {
       const arg = collection.insertOne.mock.calls[0][0] as MongoShortUrl
       expect(arg.code).toBe('abc123')
       expect(arg.originalUrl).toBe('https://ex.com')
+      expect(arg.userId).toBe('user-42')
       expect(arg.schemaVersion).toBeInstanceOf(Int32)
       expect(arg.schemaVersion.valueOf()).toBe(1)
     })
@@ -91,7 +93,13 @@ describe('MongoShortUrlRepository', () => {
     })
 
     it('throws ImmutableCodeError when trying to save an already-persisted entity', async () => {
-      const entity = new ShortUrl('some-id', 'abc123', new ValidUrl('https://ex.com'), false)
+      const entity = new ShortUrl(
+        'some-id',
+        'abc123',
+        new ValidUrl('https://ex.com'),
+        undefined,
+        false,
+      )
 
       await expect(repo.save(entity)).rejects.toBeInstanceOf(ImmutableCodeError)
       expect(collection.insertOne).not.toHaveBeenCalled()

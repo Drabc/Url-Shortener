@@ -11,6 +11,7 @@ export type UrlRow = {
   id: string
   code: string
   original_url: string
+  user_id: string | null
   created_at: Date
   updated_at: Date
 }
@@ -34,13 +35,19 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
    * @returns {Promise<ShortUrl | null>} entity or null if not found
    */
   async findByCode(code: string): Promise<ShortUrl | null> {
-    const query = 'select id, code, original_url from app.short_urls where code = $1'
+    const query = 'select id, code, original_url, user_id from app.short_urls where code = $1'
     const row = await this.client.findOne<UrlRow>(query, [code])
 
     if (!row) {
       return null
     }
-    return new ShortUrl(row.id, row.code, new ValidUrl(row.original_url), false)
+    return new ShortUrl(
+      row.id,
+      row.code,
+      new ValidUrl(row.original_url),
+      row.user_id ?? undefined,
+      false,
+    )
   }
 
   /**
@@ -57,8 +64,8 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
     }
 
     const sql =
-      'insert into app.short_urls (code, original_url, created_at, updated_at) values ($1, $2, now(), now())'
+      'insert into app.short_urls (code, original_url, user_id, created_at, updated_at) values ($1, $2, $3, now(), now())'
 
-    await this.client.insertOrThrow(sql, [code.code, code.url])
+    await this.client.insertOrThrow(sql, [code.code, code.url, code.userId ?? null])
   }
 }
