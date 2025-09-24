@@ -47,6 +47,8 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
  */
 function mapStatus(e: BaseError): number {
   switch (e.kind) {
+    case ErrorKinds.auth:
+      return 401
     case ErrorKinds.validation:
       return 422
     case ErrorKinds.conflict:
