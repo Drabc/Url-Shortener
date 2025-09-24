@@ -11,7 +11,7 @@ import { withUnitOfWork } from '@presentation/utils/with-unit-of-work.js'
  * @returns {Router} Express Router with user routes registered.
  */
 export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): Router {
-  const userRouter = Router()
+  const authRouter = Router()
 
   /**
    * @openapi
@@ -65,7 +65,7 @@ export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): 
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
-  userRouter.post('/auth/register', controller.register.bind(controller))
+  authRouter.post('/auth/register', controller.register.bind(controller))
 
   /**
    * @openapi
@@ -126,7 +126,7 @@ export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): 
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
-  userRouter.post('/auth/login', withUnitOfWork(uow, controller.login.bind(controller)))
+  authRouter.post('/auth/login', withUnitOfWork(uow, controller.login.bind(controller)))
 
-  return userRouter
+  return authRouter
 }

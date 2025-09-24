@@ -41,6 +41,8 @@ export function createRedirectRoutes(shortenerController: ShortenerController): 
    *           'application/json':
    *             schema:
    *               $ref: '#/components/schemas/ErrorFormat'
+   *       '500':
+   *         $ref: '#/components/responses/SystemError'
    */
   redirectRouter.get('/:code', shortenerController.resolve.bind(shortenerController))
 
