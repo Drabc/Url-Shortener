@@ -8,7 +8,7 @@
       "@domain/*": ["domain/*"],
       "@application/*": ["application/*"],
       "@infrastructure/*": ["infrastructure/*"],
-      "@presentation/*": ["presentation/*"],
+      "@api/*": ["api/*"],
       "@shared/*": ["shared/*"]
     },
     "forceConsistentCasingInFileNames": true,

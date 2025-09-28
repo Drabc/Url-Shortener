@@ -4,9 +4,9 @@ import OpenApiValidator from 'express-openapi-validator'
 import { OpenAPIV3 } from 'openapi-types'
 import cookieParser from 'cookie-parser'
 
-import { errorHandler } from '@presentation/middlewares/error-handler.middleware.js'
-import { swaggerSpec } from '@presentation/docs/swagger.js'
-import { patchPaths } from '@presentation/docs/patchPaths.js'
+import { errorHandler } from '@api/middlewares/error-handler.middleware.js'
+import { swaggerSpec } from '@api/docs/swagger.js'
+import { patchPaths } from '@api/docs/patchPaths.js'
 
 interface AppDeps {
   apiRouter: Router

@@ -1,8 +1,8 @@
 import { Router } from 'express'
 
-import { AuthController } from '@presentation/controllers/auth.controller.js'
+import { AuthController } from '@api/controllers/auth.controller.js'
 import { IUnitOfWork } from '@application/ports/unit-of-work.js'
-import { withUnitOfWork } from '@presentation/utils/with-unit-of-work.js'
+import { withUnitOfWork } from '@api/utils/with-unit-of-work.js'
 
 /**
  * Creates and configures the user router.
