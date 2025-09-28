@@ -1,7 +1,10 @@
 import { Redis } from 'ioredis'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
-import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
+import {
+  CodeExistsError,
+  InvalidRepositoryOperationError,
+} from '@infrastructure/errors/repository.error.js'
 import { RedisShortUrlRepository } from '@infrastructure/repositories/url/redis-short-url.repository.js'
 
 describe('RedisShortUrlRepository', () => {
@@ -38,19 +41,38 @@ describe('RedisShortUrlRepository', () => {
   })
 
   describe('save()', () => {
-    it('should save the ShortUrl using the Redis client', async () => {
-      const shortUrl = { code, url: 'https://example.com' } as ShortUrl
+    it('should save the ShortUrl using the Redis client with TTL', async () => {
+      const shortUrl = { code, url: 'https://example.com', userId: undefined } as ShortUrl
       mockRedisClient.set.mockResolvedValue('OK') // Simulate successful save
       await repository.save(shortUrl)
-      expect(mockRedisClient.set).toHaveBeenCalledWith(shortUrl.code, shortUrl.url, 'NX')
+      expect(mockRedisClient.set).toHaveBeenCalledWith(
+        shortUrl.code,
+        shortUrl.url,
+        'EX',
+        7 * 24 * 60 * 60, // 7 days in seconds
+        'NX',
+      )
     })
 
     it('should return an error if the code already exists', async () => {
-      const shortUrl = { code, url: 'https://example.com' } as ShortUrl
+      const shortUrl = { code, url: 'https://example.com', userId: undefined } as ShortUrl
       mockRedisClient.set.mockResolvedValue(null) // Simulate that the code already exists
 
       await expect(repository.save(shortUrl)).rejects.toThrow(CodeExistsError)
-      expect(mockRedisClient.set).toHaveBeenCalledWith(shortUrl.code, shortUrl.url, 'NX')
+      expect(mockRedisClient.set).toHaveBeenCalledWith(
+        shortUrl.code,
+        shortUrl.url,
+        'EX',
+        7 * 24 * 60 * 60,
+        'NX',
+      )
+    })
+
+    it('should throw InvalidRepositoryOperationError if attempting to save user-owned URL', async () => {
+      const shortUrl = { code, url: 'https://example.com', userId: 'user123' } as ShortUrl
+
+      await expect(repository.save(shortUrl)).rejects.toThrow(InvalidRepositoryOperationError)
+      expect(mockRedisClient.set).not.toHaveBeenCalled()
     })
   })
 })

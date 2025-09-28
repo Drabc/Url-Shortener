@@ -1,4 +1,4 @@
-// import { Redis, RedisOptions } from 'ioredis'
+import { Redis, RedisOptions } from 'ioredis'
 // import { Db, MongoClient } from 'mongodb'
 import { Logger } from 'pino'
 import { Pool } from 'pg'
@@ -90,7 +90,7 @@ export async function createPersistenceConnections(
       if (key === 'mongo') {
         // registry[key] = await createMongoEntry(cfg, logger)
       } else if (key === 'redis') {
-        // registry[key] = createRedisEntry(cfg, logger)
+        registry[key] = createRedisEntry(cfg, logger)
       } else if (key === 'postgres') {
         registry[key] = createPostgresEntry(cfg, logger)
       } else {
@@ -137,35 +137,33 @@ export async function createPersistenceConnections(
 //   }
 // }
 
-// /**
-//  * Creates and connects to Redis client
-//  * @param {typeof config} cfg configuration object
-//  * @param {Logger} logger logger instance
-//  * @returns {ClientEntryOf<Redis>} Connected Redis client entry
-//  */
-// function createRedisEntry(
-//   cfg: typeof config,
-//   logger: Logger,
-// ): ClientEntryOf<Redis> {
-//   const redisOptions: RedisOptions = {
-//     host: cfg.redisHost,
-//     password: cfg.redisPassword,
-//     username: cfg.redisUsername,
-//   }
+/**
+ * Creates and connects to Redis client
+ * @param {typeof config} cfg configuration object
+ * @param {Logger} logger logger instance
+ * @returns {ClientEntryOf<Redis>} Connected Redis client entry
+ */
+function createRedisEntry(cfg: typeof config, logger: Logger): ClientEntryOf<Redis> {
+  const redisOptions: RedisOptions = {
+    host: cfg.redisHost,
+    port: cfg.redisPort,
+    password: cfg.redisPassword,
+    username: cfg.redisUsername,
+  }
 
-//   logger.info('Connecting to Redis...')
-//   const client = new Redis(redisOptions)
+  logger.info('Connecting to Redis...')
+  const client = new Redis(redisOptions)
 
-//   const disconnect = async () => {
-//     await client.quit()
-//     logger.info('Redis client disconnected')
-//   }
+  const disconnect = async () => {
+    await client.quit()
+    logger.info('Redis client disconnected')
+  }
 
-//   return {
-//     client,
-//     disconnect,
-//   }
-// }
+  return {
+    client,
+    disconnect,
+  }
+}
 
 /**
  * Creates and connects to Postgres client
