@@ -13,7 +13,8 @@ import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { clock } from '@application/shared/clock.js'
 import { config } from '@infrastructure/config/config.js'
-// import { RedisShortUrlRepository } from '@infrastructure/repositories/url/redis-short-url.repository.js'
+import { RedisShortUrlRepository } from '@infrastructure/repositories/url/redis-short-url.repository.js'
+import { ShortUrlRepositorySelector } from '@infrastructure/repositories/url/short-url-repository-selector.js'
 import { logger } from '@infrastructure/logging/logger.js'
 import { MigrationRunner } from '@infrastructure/db/migrations/migration-runner.js'
 import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
@@ -21,7 +22,7 @@ import { createPersistenceConnections } from '@infrastructure/clients/persistenc
 import {
   // MONGO_CLIENT,
   POSTGRES_CLIENT,
-  // REDIS_CLIENT,
+  REDIS_CLIENT,
 } from '@infrastructure/constants.js'
 // import { MongoShortUrlRepository } from '@infrastructure/repositories/url/mongo-short-url.repository.js'
 import { PostgresShortUrlRepository } from '@infrastructure/repositories/url/postgres-short-url.repository.js'
@@ -50,26 +51,23 @@ async function bootstrap() {
   logger.info('Checking for migrations...')
   await migrationRunner.run(persistenceConnections)
 
-  // TODO: Clean up deps definition
-  // const mongoClient = persistenceConnections.get(MONGO_CLIENT)
+  // Initialize persistence clients
   const postgresClient = persistenceConnections.get(POSTGRES_CLIENT)
-  const shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
+  const redisClient = persistenceConnections.get(REDIS_CLIENT)
+
+  // Initialize repositories
+  const postgresShortUrlRepository = new PostgresShortUrlRepository(postgresClient)
+  const redisShortUrlRepository = new RedisShortUrlRepository(redisClient)
+  const shortUrlRepository = new ShortUrlRepositorySelector(
+    redisShortUrlRepository,
+    postgresShortUrlRepository,
+  )
+
   const userRepository = new PostgresUserRepository(postgresClient)
   const sessionRepo = new PostgresSessionRepository(postgresClient)
 
   // Transaction Boundary
   const uow = new PgUnitOfWork(postgresClient)
-
-  // The below is to switch between clients
-  // if (postgresClient) {
-  // shortUrlRepository = new PostgresShortUrlRepository(postgresClient)
-  // } else if (mongoClient) {
-  // shortUrlRepository = new MongoShortUrlRepository(mongoClient)
-  // } else {
-  // shortUrlRepository = new RedisShortUrlRepository(
-  // persistenceConnections.get(REDIS_CLIENT),
-  // )
-  // }
 
   const accessTokenPrivateKey = await importPKCS8(
     config.accessTokenPrivateKey,

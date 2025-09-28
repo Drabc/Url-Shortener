@@ -25,15 +25,17 @@ A production URL shortener of this size would normally pick one datastore and us
 
 ### Backend
 
-- Ability for users to create urls
-- Separate persistence into anon (redis, fs) vs auth (mongo, postgres). Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
-- Rate limits anonymous vs account
+- Clean up deps by adding composition folder
+- Log out endpoint
+- Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
 - Add integration tests
+- Rate limits anonymous vs account
 - Write proper README
 - Fold in migration initial setup
 
 #### Stretch
 - Abstract SQL into pgClient
+- Add cache for auth short urls (redis)
 - Add migration helpers e.g. create-db, migrate, etc (prod should auto migrate while dev should be triggered)
 - Add file system repo as a counterpart to Redis
 - Add different code generation strategies

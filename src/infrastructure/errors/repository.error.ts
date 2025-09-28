@@ -38,3 +38,15 @@ export class EntityAlreadyExistsError extends BaseError {
     this.name = 'EntityAlreadyExistsError'
   }
 }
+
+/**
+ * Persistence Error thrown when attempting an invalid operation on a repository.
+ * @param {string} operation - Description of the invalid operation.
+ * @augments {BaseError}
+ */
+export class InvalidRepositoryOperationError extends BaseError {
+  constructor(operation: string) {
+    super(ErrorKinds.validation, 'INVALID_REPOSITORY_OPERATION', operation)
+    this.name = 'InvalidRepositoryOperationError'
+  }
+}
