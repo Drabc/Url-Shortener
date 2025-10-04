@@ -11,7 +11,7 @@
     "format": "prettier --check 'src/**/*.{ts,js,json,md}'",
     "lint": "eslint src --cache",
     "start": "node dist/server.js",
-    "start:dev": "tsx watch src/presentation/server.ts",
+    "start:dev": "tsx watch src/server.ts",
     "test": "jest --no-coverage",
     "test:watch": "jest --watch --no-coverage"
   },
