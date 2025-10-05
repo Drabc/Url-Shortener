@@ -3,14 +3,21 @@ import { Router } from 'express'
 import { AuthController } from '@api/controllers/auth.controller.js'
 import { IUnitOfWork } from '@application/ports/unit-of-work.js'
 import { withUnitOfWork } from '@api/utils/with-unit-of-work.js'
+import { requireAuth } from '@api/middlewares/require-auth.middleware.js'
+import { IJwtVerifier } from '@application/ports/jwt-verifier.js'
 
 /**
  * Creates and configures the user router.
  * @param {AuthController} controller UserController handling user-related requests.
  * @param {IUnitOfWork} uow - Unit of Work controlling execution scope.
+ * @param {IJwtVerifier} verifier - JWT verifier used to authenticate requests.
  * @returns {Router} Express Router with user routes registered.
  */
-export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): Router {
+export function createAuthRouter(
+  controller: AuthController,
+  uow: IUnitOfWork,
+  verifier: IJwtVerifier,
+): Router {
   const authRouter = Router()
 
   /**
@@ -18,6 +25,8 @@ export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): 
    * /auth/register:
    *   post:
    *     summary: Register a new user
+   *     tags:
+   *       - Auth
    *     requestBody:
    *       required: true
    *       content:
@@ -72,6 +81,8 @@ export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): 
    * /auth/login:
    *   post:
    *     summary: Authenticate a user and start a session
+   *     tags:
+   *       - Auth
    *     requestBody:
    *       required: true
    *       content:
@@ -127,6 +138,64 @@ export function createAuthRouter(controller: AuthController, uow: IUnitOfWork): 
    *         $ref: '#/components/responses/SystemError'
    */
   authRouter.post('/auth/login', withUnitOfWork(uow, controller.login.bind(controller)))
+
+  /**
+   * @openapi
+   * /auth/logout:
+   *   post:
+   *     summary: Log out from the current session
+   *     tags:
+   *       - Auth
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       '200':
+   *         description: Successfully logged out
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Logged out successfully
+   *       '401':
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       '500':
+   *         $ref: '#/components/responses/SystemError'
+   */
+  authRouter.post('/auth/logout', requireAuth(verifier), controller.logout.bind(controller))
+
+  /**
+   * @openapi
+   * /auth/logout-all:
+   *   post:
+   *     summary: Log out from all sessions globally
+   *     tags:
+   *       - Auth
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       '200':
+   *         description: Successfully logged out from all devices
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                   example: Logged out from all devices successfully
+   *       '401':
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       '500':
+   *         $ref: '#/components/responses/SystemError'
+   */
+  authRouter.post(
+    '/auth/logout-all',
+    requireAuth(verifier),
+    withUnitOfWork(uow, controller.logoutAll.bind(controller)),
+  )
 
   return authRouter
 }
