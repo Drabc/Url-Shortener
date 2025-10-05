@@ -56,7 +56,7 @@ export function createHttpApp(deps: AppDependencies): Express {
   const apiRouter = createV1Router(
     createShortenerRouter(deps.controllers.shortenerController),
     createMeRouter(deps.controllers.shortenerController, deps.jwtService),
-    createAuthRouter(deps.controllers.authController, deps.uow),
+    createAuthRouter(deps.controllers.authController, deps.uow, deps.jwtService),
   )
 
   const redirectRouter = createRedirectRoutes(deps.controllers.shortenerController)

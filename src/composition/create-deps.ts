@@ -15,9 +15,11 @@ import { Clock } from '@application/shared/clock.js'
 import { Argon2PasswordHasher } from '@infrastructure/auth/argon2-password-hasher.adapter.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { LoginUser } from '@application/use-cases/login-user.use-case.js'
+import { LogoutUser } from '@application/use-cases/logout-user.use-case.js'
 import { HmacTokenDigester } from '@infrastructure/auth/hmac-token-digester.js'
 import { RefreshSecretGenerator } from '@infrastructure/auth/refresh-secret-generator.js'
 import { AuthController } from '@api/controllers/auth.controller.js'
+import { CookieFormatter } from '@api/utils/cookie-formatter.js'
 import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
 import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
 import { ShortenerController } from '@api/controllers/shortener.controller.js'
@@ -84,9 +86,10 @@ export async function createDeps(
   )
   const hasher = new Argon2PasswordHasher(config.pepper)
   const registerUser = new RegisterUser(userRepository, hasher, clock)
+  const tokenDigester = new HmacTokenDigester(config.refreshTokenSecret)
   const loginUser = new LoginUser(
     hasher,
-    new HmacTokenDigester(config.refreshTokenSecret),
+    tokenDigester,
     new RefreshSecretGenerator(),
     jwtService,
     sessionRepo,
@@ -94,7 +97,15 @@ export async function createDeps(
     clock,
     config,
   )
-  const authController = new AuthController(registerUser, loginUser, config.isDev)
+  const logoutUser = new LogoutUser(sessionRepo, tokenDigester, clock)
+  const cookieFormatter = new CookieFormatter()
+  const authController = new AuthController(
+    registerUser,
+    loginUser,
+    logoutUser,
+    cookieFormatter,
+    config.isDev,
+  )
 
   const shortenUrlUC = new ShortenUrl(shortUrlRepository, config.baseUrl)
   const resolveUrlUC = new ResolveUrl(shortUrlRepository)
