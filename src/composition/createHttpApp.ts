@@ -1,24 +1,25 @@
-import express, { Express, Router, Request, Response } from 'express'
+import express, { Express, Request, Response } from 'express'
 import swaggerUi from 'swagger-ui-express'
 import OpenApiValidator from 'express-openapi-validator'
 import { OpenAPIV3 } from 'openapi-types'
 import cookieParser from 'cookie-parser'
 
+import { AppDependencies } from '@composition/create-deps.js'
 import { errorHandler } from '@api/middlewares/error-handler.middleware.js'
 import { swaggerSpec } from '@api/docs/swagger.js'
 import { patchPaths } from '@api/docs/patchPaths.js'
-
-interface AppDeps {
-  apiRouter: Router
-  redirectRouter: Router
-}
+import { createV1Router } from '@api/routes/v1.routes.js'
+import { createShortenerRouter } from '@api/routes/shortener.routes.js'
+import { createRedirectRoutes } from '@api/routes/redirect.routes.js'
+import { createAuthRouter } from '@api/routes/auth.routes.js'
+import { createMeRouter } from '@api/routes/me.routes.js'
 
 /**
  * Creates an Express application with API and redirect routes.
- * @param {AppDeps} deps - The dependencies for the application.
+ * @param {AppDependencies} deps - The dependencies for the application.
  * @returns {Express} - The configured Express application.
  */
-export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
+export function createHttpApp(deps: AppDependencies): Express {
   const app: Express = express()
 
   // Augment swagger spec with API version
@@ -52,6 +53,14 @@ export function createApp({ apiRouter, redirectRouter }: AppDeps): Express {
   )
 
   // Routes
+  const apiRouter = createV1Router(
+    createShortenerRouter(deps.controllers.shortenerController),
+    createMeRouter(deps.controllers.shortenerController, deps.jwtService),
+    createAuthRouter(deps.controllers.authController, deps.uow),
+  )
+
+  const redirectRouter = createRedirectRoutes(deps.controllers.shortenerController)
+
   app.use('/api', apiRouter)
   app.use('/', redirectRouter)
 

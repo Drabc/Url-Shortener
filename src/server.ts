@@ -1,117 +1,22 @@
-import { importPKCS8, importSPKI } from 'jose'
-
-import { createApp } from '@api/app.js'
-import { ShortenerController } from '@api/controllers/shortener.controller.js'
-import { createShortenerRouter } from '@api/routes/shortener.routes.js'
-import { createV1Router } from '@api/routes/v1.routes.js'
-import { createRedirectRoutes } from '@api/routes/redirect.routes.js'
-import { createAuthRouter } from '@api/routes/auth.routes.js'
-import { createMeRouter } from '@api/routes/me.routes.js'
-import { AuthController } from '@api/controllers/auth.controller.js'
-import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
-import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
-import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { clock } from '@application/shared/clock.js'
+import { bootstrap } from '@composition/bootstrap.js'
+import { createDeps } from '@composition/create-deps.js'
+import { createHttpApp } from '@composition/createHttpApp.js'
 import { config } from '@infrastructure/config/config.js'
-import { RedisShortUrlRepository } from '@infrastructure/repositories/url/redis-short-url.repository.js'
-import { ShortUrlRepositorySelector } from '@infrastructure/repositories/url/short-url-repository-selector.js'
 import { logger } from '@infrastructure/logging/logger.js'
-import { MigrationRunner } from '@infrastructure/db/migrations/migration-runner.js'
-import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
-import { createPersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
-import {
-  // MONGO_CLIENT,
-  POSTGRES_CLIENT,
-  REDIS_CLIENT,
-} from '@infrastructure/constants.js'
-// import { MongoShortUrlRepository } from '@infrastructure/repositories/url/mongo-short-url.repository.js'
-import { PostgresShortUrlRepository } from '@infrastructure/repositories/url/postgres-short-url.repository.js'
-import { PostgresUserRepository } from '@infrastructure/repositories/user/postgres-user.repository.js'
-import { Argon2PasswordHasher } from '@infrastructure/auth/argon2-password-hasher.adapter.js'
-import { LoginUser } from '@application/use-cases/login-user.use-case.js'
-import { HmacTokenDigester } from '@infrastructure/auth/hmac-token-digester.js'
-import { RefreshSecretGenerator } from '@infrastructure/auth/refresh-secret-generator.js'
-import { JwtService } from '@infrastructure/auth/jwt.service.js'
-import { PostgresSessionRepository } from '@infrastructure/repositories/session/postgres-session.repository.js'
-import { PgUnitOfWork } from '@infrastructure/db/pg-unit-of-work.js'
 
-bootstrap().catch((err) => {
+main().catch((err) => {
   logger.error(err)
   process.exit(1)
 })
 
 /**
- * Bootstraps the application
+ * Server entry point
  */
-async function bootstrap() {
-  const persistenceConnections = await createPersistenceConnections(config, logger)
-
-  const migrationRunner = new MigrationRunner(new MigrationPlanner(config.migrationsPath), logger)
-
-  logger.info('Checking for migrations...')
-  await migrationRunner.run(persistenceConnections)
-
-  // Initialize persistence clients
-  const postgresClient = persistenceConnections.get(POSTGRES_CLIENT)
-  const redisClient = persistenceConnections.get(REDIS_CLIENT)
-
-  // Initialize repositories
-  const postgresShortUrlRepository = new PostgresShortUrlRepository(postgresClient)
-  const redisShortUrlRepository = new RedisShortUrlRepository(redisClient)
-  const shortUrlRepository = new ShortUrlRepositorySelector(
-    redisShortUrlRepository,
-    postgresShortUrlRepository,
-  )
-
-  const userRepository = new PostgresUserRepository(postgresClient)
-  const sessionRepo = new PostgresSessionRepository(postgresClient)
-
-  // Transaction Boundary
-  const uow = new PgUnitOfWork(postgresClient)
-
-  const accessTokenPrivateKey = await importPKCS8(
-    config.accessTokenPrivateKey,
-    config.accessTokenAlgo,
-  )
-  const accessTokenPublicKey = await importSPKI(config.accessTokenPublicKey, config.accessTokenAlgo)
-
-  const jwtService = new JwtService(
-    config.accessTokenIssuer,
-    config.accessTokenAudience,
-    config.accessTokenAlgo,
-    config.accessTokenTtl,
-    accessTokenPrivateKey,
-    accessTokenPublicKey,
-    clock,
-    logger,
-  )
-  const hasher = new Argon2PasswordHasher(config.pepper)
-  const registerUser = new RegisterUser(userRepository, hasher, clock)
-  const loginUser = new LoginUser(
-    hasher,
-    new HmacTokenDigester(config.refreshTokenSecret),
-    new RefreshSecretGenerator(),
-    jwtService,
-    sessionRepo,
-    userRepository,
-    clock,
-    config,
-  )
-  const authController = new AuthController(registerUser, loginUser, config.isDev)
-
-  const shortenUrlUC = new ShortenUrl(shortUrlRepository, config.baseUrl)
-  const resolveUrlUC = new ResolveUrl(shortUrlRepository)
-  const shortenerController = new ShortenerController(shortenUrlUC, resolveUrlUC)
-
-  const apiRouter = createV1Router(
-    createShortenerRouter(shortenerController),
-    createMeRouter(shortenerController, jwtService),
-    createAuthRouter(authController, uow),
-  )
-
-  const redirectRouter = createRedirectRoutes(shortenerController)
-
-  const app = createApp({ apiRouter, redirectRouter })
+async function main() {
+  const connections = await bootstrap(config, logger)
+  const deps = await createDeps(config, connections, clock, logger)
+  const app = createHttpApp(deps)
 
   const server = app.listen(config.port, () => {
     logger.info(`Server is running on port ${config.port}`)
@@ -120,7 +25,7 @@ async function bootstrap() {
   const shutdown = async (signal: string, code = 0) => {
     logger.info(`${signal} received — shutting down...`)
     server.close(() => logger.info('HTTP server closed'))
-    await persistenceConnections.disconnectAll()
+    await connections.disconnectAll()
     process.exit(code)
   }
 
