@@ -1,7 +1,7 @@
 import { Router } from 'express'
 
-import { ShortenerController } from '@presentation/controllers/shortener.controller.js'
-import { requireAuth } from '@presentation/middlewares/require-auth.middleware.js'
+import { ShortenerController } from '@api/controllers/shortener.controller.js'
+import { requireAuth } from '@api/middlewares/require-auth.middleware.js'
 import { IJwtVerifier } from '@application/ports/jwt-verifier.js'
 
 /**

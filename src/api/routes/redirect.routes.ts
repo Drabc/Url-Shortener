@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-import { ShortenerController } from '@presentation/controllers/shortener.controller.js'
+import { ShortenerController } from '@api/controllers/shortener.controller.js'
 
 /**
  * Creates a router for redirect operations.

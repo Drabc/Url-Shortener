@@ -25,7 +25,6 @@ A production URL shortener of this size would normally pick one datastore and us
 
 ### Backend
 
-- Clean up deps by adding composition folder
 - Log out endpoint
 - Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
 - Add integration tests

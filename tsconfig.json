@@ -8,8 +8,9 @@
       "@domain/*": ["domain/*"],
       "@application/*": ["application/*"],
       "@infrastructure/*": ["infrastructure/*"],
-      "@presentation/*": ["presentation/*"],
-      "@shared/*": ["shared/*"]
+      "@api/*": ["api/*"],
+      "@shared/*": ["shared/*"],
+      "@composition/*": ["composition/*"]
     },
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,

@@ -70,5 +70,5 @@ export const swaggerSpec = swaggerJSDoc({
       },
     },
   },
-  apis: [`${config.rootDir}/src/presentation/routes/**/*.ts`],
+  apis: [`${config.rootDir}/src/api/routes/**/*.ts`],
 }) as OpenAPIV3.Document
