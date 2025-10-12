@@ -1,7 +1,12 @@
+import { ApplicationError } from '@application/errors/base-application.error.js'
+import { DomainError } from '@domain/errors/base-domain.error.js'
+
 export type ErrorKind =
+  | 'domain'
+  | 'application'
+  | 'infra'
   | 'validation'
   | 'conflict'
-  | 'domain'
   | 'system'
   | 'not_found'
   | 'auth'
@@ -19,6 +24,8 @@ export const ErrorKinds: Record<ErrorKind, ErrorKind> = {
   forbidden: 'forbidden',
   rate_limit: 'rate_limit',
   unknown: 'unknown',
+  application: 'application',
+  infra: 'infra',
 } as const
 
 /**
@@ -33,10 +40,9 @@ export class BaseError extends Error {
     public readonly kind: ErrorKind,
     public readonly type: string,
     message?: string,
-    stack?: string,
+    public readonly internalMessage?: string,
   ) {
     super(message)
-    if (stack) this.stack = stack
   }
 }
 
@@ -50,4 +56,31 @@ export class SystemError extends BaseError {
   constructor(message?: string, stack?: string) {
     super(ErrorKinds.system, 'SYSTEM', message, stack)
   }
+}
+
+export interface BaseErrorV2<K extends ErrorKind, T extends string> {
+  kind: K
+  type: T
+  message?: string
+  cause?: string
+}
+
+export type AnyError = DomainError | ApplicationError
+
+export const errorFactory = {
+  domain: <T extends string>(type: T, cause?: string): BaseErrorV2<'domain', T> => ({
+    kind: 'domain',
+    type,
+    cause,
+  }),
+  app: <T extends string>(type: T, cause?: string): BaseErrorV2<'application', T> => ({
+    kind: 'application',
+    type,
+    cause,
+  }),
+  infra: <T extends string>(type: T, cause?: string): BaseErrorV2<'infra', T> => ({
+    kind: 'infra',
+    type,
+    cause,
+  }),
 }

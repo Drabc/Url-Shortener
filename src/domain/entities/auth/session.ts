@@ -1,12 +1,9 @@
 import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
 import { Digest, ITokenDigester } from '@domain/utils/token-digester.js'
 import { BaseEntity } from '@domain/entities/base-entity.js'
-import {
-  SessionNotActiveError,
-  NoActiveRefreshTokenError,
-  SessionExpiredError,
-  RefreshTokenReuseDetectedError,
-} from '@domain/errors/session.errors.js'
+import { BaseDomainError } from '@domain/errors/base-domain.error.js'
+import { Err, Ok, Result } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
 
 export type SessionStatus = 'active' | 'revoked' | 'expired' | 'reuse_detected'
 
@@ -201,33 +198,38 @@ export class Session extends BaseEntity {
    * @param {Digest} newDigest Digest (hash + algorithm) for the newly issued refresh token.
    * @param {ITokenDigester} verifier Token digester used to verify the presented token against stored digest.
    * @param {Date} now The current time.
-   * @throws {SessionNotActiveError} If the session is not active.
-   * @throws {NoActiveRefreshTokenError} If no active refresh token exists for rotation.
-   * @throws {SessionExpiredError} If the session has expired.
-   * @throws {RefreshTokenReuseDetectedError} If token reuse (mismatch) is detected.
+   * @returns {Result<void, BaseDomainError<'InvalidSession'>>} Session error on Failure
    */
-  rotateToken(presentedPlain: Buffer, newDigest: Digest, verifier: ITokenDigester, now: Date) {
+  rotateToken(
+    presentedPlain: Buffer,
+    newDigest: Digest,
+    verifier: ITokenDigester,
+    now: Date,
+  ): Result<void, BaseDomainError<'InvalidSession'>> {
     const activeToken = this._tokens.find((t) => t.isActive())
+    const sessionErrorResult = (cause: string): Err<BaseDomainError<'InvalidSession'>> => {
+      return Err(errorFactory.domain('InvalidSession', cause))
+    }
 
     if (this._status !== STATUSES.active) {
-      throw new SessionNotActiveError()
+      return sessionErrorResult('Session is not Active')
     }
 
     if (!activeToken) {
       this.revoke(now, END_REASONS.inactive)
-      throw new NoActiveRefreshTokenError()
+      return sessionErrorResult('No active refresh token')
     }
 
     if (this.expiresAt <= now) {
       this.markExpired(now)
       activeToken.markRevoked()
-      throw new SessionExpiredError()
+      return sessionErrorResult('Expired session')
     }
 
     if (!verifier.verify(presentedPlain, activeToken.digest)) {
       this.markReuseDetected(now)
       activeToken.markReused()
-      throw new RefreshTokenReuseDetectedError()
+      return sessionErrorResult('Refresh token reuse detected')
     }
 
     const newToken = RefreshToken.fresh({
@@ -244,6 +246,7 @@ export class Session extends BaseEntity {
 
     activeToken.markRotated(now)
     this._tokens.push(newToken)
+    return Ok()
   }
 
   /**
