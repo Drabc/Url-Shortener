@@ -13,6 +13,7 @@ import { InvalidCredentialsError } from '@application/errors/invalid-credentials
 type LoginResponse = {
   accessToken: string
   refreshToken: Buffer
+  expirationDate: Date
 }
 
 /**
@@ -74,7 +75,11 @@ export class LoginUser {
         if (s.clientId !== fingerPrint.clientId) continue
         if (s.hasActiveRefreshToken(presentedRefreshToken, this.tokenDigester)) {
           const accessToken = await this.jwtIssuer.issue(user.id)
-          return { accessToken, refreshToken: presentedRefreshToken }
+          return {
+            accessToken,
+            refreshToken: presentedRefreshToken,
+            expirationDate: s.expiresAt,
+          }
         }
       }
     }
@@ -96,6 +101,6 @@ export class LoginUser {
 
     await this.sessionRepo.save(session)
 
-    return { accessToken, refreshToken: refreshToken.value }
+    return { accessToken, refreshToken: refreshToken.value, expirationDate: session.expiresAt }
   }
 }

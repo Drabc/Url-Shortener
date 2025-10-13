@@ -75,23 +75,6 @@ describe('Session', () => {
     })
   })
 
-  describe('touch()', () => {
-    it('updates lastUsedAt', () => {
-      const s = Session.start({
-        userId: base.userId,
-        clientId: base.clientId,
-        now: base.now,
-        ttlSec: base.ttlSec,
-        digest,
-        ip: base.ip,
-        userAgent: base.userAgent,
-      })
-      const later = new Date('2025-08-31T12:30:00.000Z')
-      s.touch(later)
-      expect(s.lastUsedAt?.toISOString()).toBe(later.toISOString())
-    })
-  })
-
   describe('revoke()', () => {
     it('sets revoked fields and status; second revoke is no-op', () => {
       const s = Session.start({

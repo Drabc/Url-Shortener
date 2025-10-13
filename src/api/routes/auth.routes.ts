@@ -123,11 +123,7 @@ export function createAuthRouter(
    *                   type: string
    *                   description: JWT access token
    *       '401':
-   *         description: Invalid credentials
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorFormat'
+   *         $ref: '#/components/responses/UnauthorizedError'
    *       '422':
    *         description: Validation error (email or password)
    *         content:
@@ -138,6 +134,37 @@ export function createAuthRouter(
    *         $ref: '#/components/responses/SystemError'
    */
   authRouter.post('/auth/login', withUnitOfWork(uow, controller.login.bind(controller)))
+
+  /**
+   * @openapi
+   * /auth/refresh:
+   *   post:
+   *     summary: Rotate refresh token and obtain new access token
+   *     tags:
+   *       - Auth
+   *     responses:
+   *       '200':
+   *         description: Token refreshed
+   *         headers:
+   *           Set-Cookie:
+   *             description: Rotated HTTP-only refresh token cookie.
+   *             schema:
+   *               type: string
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               required:
+   *                 - accessToken
+   *               properties:
+   *                 accessToken:
+   *                   type: string
+   *       '401':
+   *         $ref: '#/components/responses/UnauthorizedError'
+   *       '500':
+   *         $ref: '#/components/responses/SystemError'
+   */
+  authRouter.post('/auth/refresh', withUnitOfWork(uow, controller.refresh.bind(controller)))
 
   /**
    * @openapi

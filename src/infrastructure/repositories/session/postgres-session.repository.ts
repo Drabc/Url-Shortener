@@ -39,7 +39,7 @@ export class PostgresSessionRepository implements ISessionRepository {
    */
   async findActiveByUserId(userId: string): Promise<Session[]> {
     const query = `
-      select s.id, s.user_id, s.status, s.expires_at, rt.id as rt_id, rt.hash, rt.hash_algo, rt.status as rt_status,
+      select s.id, s.user_id, s.status, s.expires_at, s.last_used_at, rt.id as rt_id, rt.hash, rt.hash_algo, rt.status as rt_status,
         rt.issued_at as rt_issued_at, rt.ip as rt_ip, rt.user_agent as rt_user_agent, rt.last_used_at as rt_last_used_at,
         rt.prev_token, s.ip, s.ended_at, s.end_reason, s.client_id
       from auth.sessions s
@@ -50,6 +50,32 @@ export class PostgresSessionRepository implements ISessionRepository {
     `
     const rows = await this.client.findMany<SessionAggregateRow>(query, [userId])
     return this.toDomain(rows)
+  }
+
+  /**
+   * Retrieves the session aggregate associated with the given refresh token hash including all action session refresh tokens.
+   * @param {Buffer} hash Hash of the refresh token being used for rotation.
+   * @returns {Session | null} Hydrated Session aggregate or null if not found.
+   */
+  async findSessionForRefresh(hash: Buffer): Promise<Session | null> {
+    const query = `
+      WITH activeSession AS (
+        SELECT session_id
+        FROM auth.refresh_tokens
+        WHERE hash = $1
+      )
+      SELECT s.id, s.user_id, s.status, s.expires_at, s.last_used_at, s.client_id, s.ip, s.ended_at, s.end_reason,
+             rt.id as rt_id, rt.hash, rt.hash_algo, rt.status as rt_status, rt.issued_at as rt_issued_at,
+             rt.ip as rt_ip, rt.user_agent as rt_user_agent, rt.last_used_at as rt_last_used_at, rt.prev_token
+      FROM activeSession ats
+      JOIN auth.sessions s ON s.id = ats.session_id
+      JOIN auth.refresh_tokens rt ON rt.session_id = s.id
+      WHERE rt.hash = $1 OR rt.status = 'active'
+    `
+    const rows = await this.client.findMany<SessionAggregateRow>(query, [hash])
+    if (!rows.length) return null
+    const sessions = this.toDomain(rows)
+    return sessions[0] ?? null
   }
   /**
    * Persists the session aggregate (session and its refresh tokens) using upsert semantics.
@@ -71,6 +97,7 @@ export class PostgresSessionRepository implements ISessionRepository {
       where auth.sessions.user_id = excluded.user_id
       returning id, (xmax = 0) as inserted
     `
+
     const { rows } = await this.client.query(sessionQuery, [
       session.id,
       session.userId,
@@ -147,6 +174,7 @@ export class PostgresSessionRepository implements ISessionRepository {
     for (let row of rows) {
       sessionArgs = sessionIdentityMap[row.id]
       if (!sessionArgs) {
+        console.log(row.last_used_at)
         sessionArgs = {
           id: row.id,
           userId: row.user_id,

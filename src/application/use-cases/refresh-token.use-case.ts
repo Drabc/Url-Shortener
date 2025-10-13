@@ -7,7 +7,7 @@ import { FingerPrint } from '@application/dtos.js'
 import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { AnyError, errorFactory } from '@shared/errors.js'
 
-type RefreshResult = { accessToken: string; refreshToken: Buffer }
+type RefreshResult = { accessToken: string; refreshToken: Buffer; expirationDate: Date }
 
 /**
  * Application use case responsible for rotating a refresh token and issuing a new access token.
@@ -65,6 +65,10 @@ export class RefreshToken {
     }
 
     const accessToken = await this.jwtIssuer.issue(session.userId)
-    return Ok({ accessToken, refreshToken: newPlainSecret.value })
+    return Ok({
+      accessToken,
+      refreshToken: newPlainSecret.value,
+      expirationDate: session.expiresAt,
+    })
   }
 }

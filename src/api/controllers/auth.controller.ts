@@ -1,9 +1,10 @@
-import { Request, Response } from 'express'
+import { CookieOptions, NextFunction, Request, Response } from 'express'
 
 import { FingerPrint, UserDTO } from '@application/dtos.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { LoginUser } from '@application/use-cases/login-user.use-case.js'
 import { LogoutUser } from '@application/use-cases/logout-user.use-case.js'
+import { RefreshToken } from '@application/use-cases/refresh-token.use-case.js'
 import { CookieFormatter } from '@api/utils/cookie-formatter.js'
 
 const REFRESH_TOKEN_COOKIE_NAME = 'refresh-token' as const
@@ -21,6 +22,7 @@ export class AuthController {
     private registerUser: RegisterUser,
     private loginUser: LoginUser,
     private logoutUser: LogoutUser,
+    private refreshToken: RefreshToken,
     private cookieFormatter: CookieFormatter,
     private isDev: boolean,
   ) {}
@@ -51,23 +53,14 @@ export class AuthController {
     const presentedRefreshHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presentedRefreshToken = this.cookieFormatter.safeDecodeRefreshToken(presentedRefreshHex)
 
-    const { accessToken, refreshToken } = await this.loginUser.exec(
+    const { accessToken, refreshToken, expirationDate } = await this.loginUser.exec(
       email,
       password,
       fp,
       presentedRefreshToken,
     )
 
-    res.cookie(
-      REFRESH_TOKEN_COOKIE_NAME,
-      this.cookieFormatter.encodeRefreshToken(refreshToken),
-      this.getRefreshTokenCookieOptions(),
-    )
-
-    // Never cache tokens
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-    res.setHeader('Pragma', 'no-cache')
-
+    this.createRefreshTokenCookie(res, refreshToken, expirationDate)
     // TODO: Add metadata type (Bearer), expiration time
     res.status(200).json({ accessToken })
   }
@@ -116,14 +109,63 @@ export class AuthController {
   }
 
   /**
-   * Gets the standard cookie options used for refresh tokens.
-   * @returns {object} Cookie options object with consistent security settings.
+   * Rotates a valid refresh token and returns a new access token. Requires existing refresh token cookie.
+   * @param {Request} req Express request containing userId (access token may still be valid or near expiry).
+   * @param {Response} res Express response setting new refresh cookie and returning new access token.
+   * @param {NextFunction} next next handler
    */
-  private getRefreshTokenCookieOptions() {
+  async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const fp = this.createFingerPrint(req)
+    const presentedHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
+    const presented = this.cookieFormatter.safeDecodeRefreshToken(presentedHex)
+    if (!presented) {
+      res.status(401).json({ error: 'Invalid token' })
+      return
+    }
+
+    const result = await this.refreshToken.exec(fp, presented)
+
+    if (!result.ok) {
+      next(result.error)
+      return
+    }
+
+    const { accessToken, refreshToken, expirationDate } = result.value!
+
+    this.createRefreshTokenCookie(res, refreshToken, expirationDate)
+
+    res.status(200).json({ accessToken })
+  }
+
+  /**
+   * Sets the refresh token cookie with proper security flags and disables caching.
+   * @param {Response} res Express response used to set the cookie and headers.
+   * @param {Buffer} refreshToken Raw refresh token bytes to encode into the cookie.
+   * @param {Date} expirationDate Expiration date reference used to derive cookie lifetime.
+   */
+  private createRefreshTokenCookie(res: Response, refreshToken: Buffer, expirationDate: Date) {
+    res.cookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      this.cookieFormatter.encodeRefreshToken(refreshToken),
+      this.getRefreshTokenCookieOptions(expirationDate),
+    )
+
+    // Never cache tokens
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+    res.setHeader('Pragma', 'no-cache')
+  }
+
+  /**
+   * Gets the standard cookie options used for refresh tokens.
+   * @param {Date} expires When the cookie expires
+   * @returns {CookieOptions} Cookie options object with consistent security settings.
+   */
+  private getRefreshTokenCookieOptions(expires?: Date): CookieOptions {
     return {
       sameSite: 'lax' as const,
       httpOnly: true,
       secure: !this.isDev,
+      ...(expires && { expires }),
       // Add path to only tie it to the refresh and logout endpoint
     }
   }

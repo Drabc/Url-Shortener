@@ -85,9 +85,9 @@ export class Session extends BaseEntity {
       expiresAt,
       STATUSES.active,
       [newToken],
+      now,
       ip,
       userAgent,
-      now,
     )
   }
 
@@ -117,9 +117,9 @@ export class Session extends BaseEntity {
       expiresAt,
       status,
       tokens,
+      lastUsedAt,
       ip,
       userAgent,
-      lastUsedAt,
       endedAt,
       endReason,
       false,
@@ -173,22 +173,14 @@ export class Session extends BaseEntity {
     public readonly expiresAt: Date,
     private _status: SessionStatus,
     private _tokens: RefreshToken[],
+    private _lastUsedAt: Date,
     public readonly ip?: string,
     public readonly userAgent?: string,
-    private _lastUsedAt?: Date,
     private _endedAt?: Date,
     private _endReason?: string,
     isNew = true,
   ) {
     super(id, isNew)
-  }
-
-  /**
-   * Update the lastUsedAt timestamp to the provided time.
-   * @param {Date} now - The current timestamp to record as last used.
-   */
-  touch(now: Date) {
-    this._lastUsedAt = now
   }
 
   /**
@@ -243,6 +235,8 @@ export class Session extends BaseEntity {
       userAgent: this.userAgent,
       previousTokenId: activeToken.id,
     })
+
+    this._lastUsedAt = now
 
     activeToken.markRotated(now)
     this._tokens.push(newToken)

@@ -23,6 +23,7 @@ describe('LogoutUser', () => {
   beforeEach(() => {
     mockSessionRepo = {
       findActiveByUserId: jest.fn(),
+      findSessionForRefresh: jest.fn(),
       save: jest.fn(),
     }
 

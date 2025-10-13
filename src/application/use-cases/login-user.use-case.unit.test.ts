@@ -75,6 +75,7 @@ describe('LoginUser.exec()', () => {
 
     expect(result.accessToken).toBe('jwt-access')
     expect(result.refreshToken).toBe(generatedSecret.value)
+    expect(result.expirationDate instanceof Date).toBe(true)
     expect(sessionRepo.save).toHaveBeenCalledTimes(1)
   })
 
@@ -107,6 +108,7 @@ describe('LoginUser.exec()', () => {
 
     expect(result.accessToken).toBe('jwt-existing-access')
     expect(result.refreshToken).toBe(presented)
+    expect(result.expirationDate.toISOString()).toBe(activeSession.expiresAt.toISOString())
     expect(sessionRepo.save).not.toHaveBeenCalled()
     expect(jwtIssuer.issue).toHaveBeenCalledTimes(1)
     expect(tokenDigester.verify).toHaveBeenCalledWith(presented, activeToken.digest)
@@ -142,6 +144,7 @@ describe('LoginUser.exec()', () => {
 
     expect(result.accessToken).toBe('jwt-new-access')
     expect(result.refreshToken).toBe(generatedSecret.value)
+    expect(result.expirationDate instanceof Date).toBe(true)
     expect(sessionRepo.save).toHaveBeenCalledTimes(1)
   })
 
@@ -178,6 +181,7 @@ describe('LoginUser.exec()', () => {
 
     expect(result.accessToken).toBe('jwt-brand-new')
     expect(result.refreshToken).toBe(generatedSecret.value)
+    expect(result.expirationDate instanceof Date).toBe(true)
     expect(sessionRepo.save).toHaveBeenCalledTimes(1)
   })
 
