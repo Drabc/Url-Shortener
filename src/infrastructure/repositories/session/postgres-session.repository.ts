@@ -174,7 +174,6 @@ export class PostgresSessionRepository implements ISessionRepository {
     for (let row of rows) {
       sessionArgs = sessionIdentityMap[row.id]
       if (!sessionArgs) {
-        console.log(row.last_used_at)
         sessionArgs = {
           id: row.id,
           userId: row.user_id,
