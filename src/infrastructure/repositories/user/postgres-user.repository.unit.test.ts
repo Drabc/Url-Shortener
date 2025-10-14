@@ -7,11 +7,11 @@ import { User } from '@domain/entities/user.js'
 import { Email } from '@domain/value-objects/email.js'
 
 describe('PostgresUserRepository', () => {
-  let pg: { findOne: jest.Mock; insertOrThrow: jest.Mock }
+  let pg: { findOne: jest.Mock; insert: jest.Mock }
   let repo: PostgresUserRepository
 
   beforeEach(() => {
-    pg = { findOne: jest.fn(), insertOrThrow: jest.fn() }
+    pg = { findOne: jest.fn(), insert: jest.fn() }
     repo = new PostgresUserRepository(pg as unknown as PgClient)
   })
 
@@ -78,8 +78,8 @@ describe('PostgresUserRepository', () => {
   })
 
   describe('save()', () => {
-    it('delegates to insertOrThrow with expected values', async () => {
-      pg.insertOrThrow.mockResolvedValue(undefined)
+    it('delegates to insert with expected values', async () => {
+      pg.insert.mockResolvedValue({ ok: true, value: undefined })
       const user = new User(
         'id-1',
         'First',
@@ -91,8 +91,8 @@ describe('PostgresUserRepository', () => {
 
       await expect(repo.save(user)).resolves.toBeUndefined()
 
-      expect(pg.insertOrThrow).toHaveBeenCalledTimes(1)
-      const [query, values] = pg.insertOrThrow.mock.calls[0]
+      expect(pg.insert).toHaveBeenCalledTimes(1)
+      const [query, values] = pg.insert.mock.calls[0]
       expect(query).toContain('insert into app.users')
       expect(values).toEqual([
         'First',

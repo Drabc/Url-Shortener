@@ -53,7 +53,7 @@ export class PostgresUserRepository implements IUserRepository {
       on conflict do nothing
     `
 
-    await this.client.insertOrThrow(query, [
+    await this.client.insert(query, [
       user.firstName,
       user.lastName,
       user.email.value,
