@@ -1,21 +1,25 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import {
-  EntityAlreadyExistsError,
-  ImmutableCodeError,
-} from '@infrastructure/errors/repository.error.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
 import {
   PostgresShortUrlRepository,
   UrlRow,
 } from '@infrastructure/repositories/url/postgres-short-url.repository.js'
 
+type ErrorMock = {
+  ok: boolean
+  error: {
+    type: string
+    kind: string
+  }
+}
+
 describe('PostgresShortUrlRepository', () => {
-  let pg: { findOne: jest.Mock; insertOrThrow: jest.Mock }
+  let pg: { findOne: jest.Mock; insert: jest.Mock }
   let repo: PostgresShortUrlRepository
 
   beforeEach(() => {
-    pg = { findOne: jest.fn(), insertOrThrow: jest.fn() }
+    pg = { findOne: jest.fn(), insert: jest.fn() }
     repo = new PostgresShortUrlRepository(pg as unknown as PgClient)
   })
 
@@ -59,37 +63,40 @@ describe('PostgresShortUrlRepository', () => {
 
   describe('save()', () => {
     it('inserts a new row for a non-persisted entity (anonymous)', async () => {
-      pg.insertOrThrow.mockResolvedValue(undefined)
+      pg.insert.mockResolvedValue({ ok: true, value: undefined })
       const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
 
-      await expect(repo.save(entity)).resolves.toBeUndefined()
-
-      expect(pg.insertOrThrow).toHaveBeenCalledWith(
+      const res = await repo.save(entity)
+      expect(res.ok).toBe(true)
+      expect(pg.insert).toHaveBeenCalledWith(
         'insert into app.short_urls (code, original_url, user_id, created_at, updated_at) values ($1, $2, $3, now(), now())',
         ['abc123', 'https://ex.com', null],
       )
     })
 
     it('inserts a new row with user_id for a user-owned short url', async () => {
-      pg.insertOrThrow.mockResolvedValue(undefined)
+      pg.insert.mockResolvedValue({ ok: true, value: undefined })
       const entity = new ShortUrl('', 'abc999', new ValidUrl('https://ex2.com'), 'user-22')
 
-      await expect(repo.save(entity)).resolves.toBeUndefined()
-
-      expect(pg.insertOrThrow).toHaveBeenCalledWith(
+      const res = await repo.save(entity)
+      expect(res.ok).toBe(true)
+      expect(pg.insert).toHaveBeenCalledWith(
         'insert into app.short_urls (code, original_url, user_id, created_at, updated_at) values ($1, $2, $3, now(), now())',
         ['abc999', 'https://ex2.com', 'user-22'],
       )
     })
 
-    it('throws EntityAlreadyExistsError when underlying client signals duplicate', async () => {
-      pg.insertOrThrow.mockRejectedValue(new EntityAlreadyExistsError())
+    it('returns domain UnableToSave when underlying client insert fails', async () => {
+      pg.insert.mockResolvedValue({ ok: false, error: { kind: 'infra', type: 'UniqueViolation' } })
       const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
 
-      await expect(repo.save(entity)).rejects.toBeInstanceOf(EntityAlreadyExistsError)
+      const res = (await repo.save(entity)) as unknown as ErrorMock
+      expect(res.ok).toBe(false)
+      expect(res.error.type).toBe('UnableToSave')
+      expect(res.error.kind).toBe('domain')
     })
 
-    it('throws ImmutableCodeError when entity is already persisted', async () => {
+    it('returns domain ImmutableCode when entity is already persisted', async () => {
       const entity = new ShortUrl(
         '11111111-1111-1111-1111-111111111111',
         'abc123',
@@ -98,8 +105,11 @@ describe('PostgresShortUrlRepository', () => {
         false,
       )
 
-      await expect(repo.save(entity)).rejects.toBeInstanceOf(ImmutableCodeError)
-      expect(pg.insertOrThrow).not.toHaveBeenCalled()
+      const res = (await repo.save(entity)) as unknown as ErrorMock
+      expect(res.ok).toBe(false)
+      expect(res.error.type).toBe('ImmutableCode')
+      expect(res.error.kind).toBe('domain')
+      expect(pg.insert).not.toHaveBeenCalled()
     })
   })
 })

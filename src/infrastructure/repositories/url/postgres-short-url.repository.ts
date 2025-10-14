@@ -1,11 +1,10 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import {
-  EntityAlreadyExistsError,
-  ImmutableCodeError,
-} from '@infrastructure/errors/repository.error.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
+import { CodeError } from '@domain/errors/repository.error.js'
 
 export type UrlRow = {
   id: string
@@ -54,18 +53,18 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
    * Saves a new ShortUrl entity.
    * Updates are not allowed for short codes.
    * @param {ShortUrl} code the short url domain entity
-   * @returns {Promise<void>}
-   * @throws {EntityAlreadyExistsError} if a row with the same code already exists
-   * @throws {ImmutableCodeError} if trying to save an already persisted entity
+   * @returns {AsyncResult<void, CodeError>} void or error if the code is not new
    */
-  async save(code: ShortUrl): Promise<void> {
+  async save(code: ShortUrl): AsyncResult<void, CodeError> {
     if (!code.isNew()) {
-      throw new ImmutableCodeError()
+      return Err(errorFactory.domain('ImmutableCode'))
     }
 
     const sql =
       'insert into app.short_urls (code, original_url, user_id, created_at, updated_at) values ($1, $2, $3, now(), now())'
 
-    await this.client.insertOrThrow(sql, [code.code, code.url, code.userId ?? null])
+    const result = await this.client.insert(sql, [code.code, code.url, code.userId ?? null])
+
+    return result.ok ? Ok(undefined) : Err(errorFactory.domain('UnableToSave'))
   }
 }

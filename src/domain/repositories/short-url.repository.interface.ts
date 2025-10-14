@@ -1,12 +1,13 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
-import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
+import { CodeError } from '@domain/errors/repository.error.js'
+import { AsyncResult } from '@shared/result.js'
 
 export interface IShortUrlRepository {
   /**
    * Persists a short url
    * @param {ShortUrl} code The short url to save
-   * @throws {CodeExistsError} if trying to save a code that is already in the persistence mechanism
+   * @returns {AsyncResult<void, CodeError>} void or CodeError
    */
-  save(code: ShortUrl): Promise<void>
+  save(code: ShortUrl): AsyncResult<void, CodeError>
   findByCode(code: string): Promise<ShortUrl | null>
 }

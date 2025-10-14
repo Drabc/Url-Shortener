@@ -3,10 +3,9 @@ import { Redis } from 'ioredis'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
-import {
-  CodeExistsError,
-  InvalidRepositoryOperationError,
-} from '@infrastructure/errors/repository.error.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
+import { CodeError } from '@domain/errors/repository.error.js'
+import { errorFactory } from '@shared/errors.js'
 
 /**
  * Redis implementation of the URL repository interface for storing and retrieving short URLs.
@@ -38,20 +37,19 @@ export class RedisShortUrlRepository implements IShortUrlRepository {
    * Saves a ShortUrl entity to the Redis database with 7-day TTL.
    * Only accepts anonymous URLs (userId must be undefined).
    * @param {ShortUrl} shortUrl - The ShortUrl entity to save.
-   * @returns {Promise<void>} A promise that resolves when the save operation is complete.
-   * @throws {CodeExistsError} Thrown if the short URL code already exists in the database.
-   * @throws {InvalidRepositoryOperationError} Thrown if attempting to save a user-owned URL (userId is not undefined).
+   * @returns {AsyncResult<void, CodeError>} Code Error when not able to save code.
    */
-  async save(shortUrl: ShortUrl): Promise<void> {
+  async save(shortUrl: ShortUrl): AsyncResult<void, CodeError> {
     if (shortUrl.userId !== undefined) {
-      throw new InvalidRepositoryOperationError(
-        'Redis repository only accepts anonymous URLs (userId must be undefined)',
+      return Err(
+        errorFactory.domain(
+          'UnableToSave',
+          'Redis repository only accepts anonymous URLs (userId must be undefined)',
+        ),
       )
     }
 
     const response = await this.client.set(shortUrl.code, shortUrl.url, 'EX', this.ttlSeconds, 'NX')
-    if (!response) {
-      throw new CodeExistsError(`Short URL code "${shortUrl.code}" already exists.`)
-    }
+    return !response ? Err(errorFactory.domain('DuplicateCode')) : Ok(undefined)
   }
 }
