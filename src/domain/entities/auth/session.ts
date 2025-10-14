@@ -240,7 +240,7 @@ export class Session extends BaseEntity {
 
     activeToken.markRotated(now)
     this._tokens.push(newToken)
-    return Ok()
+    return Ok(undefined)
   }
 
   /**
