@@ -3,7 +3,9 @@ import { Collection, Db, Int32, MongoServerError, ObjectId } from 'mongodb'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import { CodeExistsError, ImmutableCodeError } from '@infrastructure/errors/repository.error.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
+import { CodeError } from '@domain/errors/repository.error.js'
 
 export type MongoShortUrl = {
   _id?: ObjectId
@@ -51,15 +53,14 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
   }
 
   /**
-   * Saves a ShortUrl entity to the MongoDB collection.
-   * @param {ShortUrl} entity - The ShortUrl entity to save.
-   * @throws {CodeExistsError} if the short URL code already exists in the database.
-   * @throws {ImmutableCodeError} if trying to update an existing ShortUrl (updates are not allowed).
-   * @returns {Promise<void>}
+   * Saves a new ShortUrl entity to the MongoDB collection.
+   * or Err(UnableToSave) for other persistence failures.
+   * @param {ShortUrl} entity the domain short url
+   * @returns {AsyncResult<void, CodeError>} Returns Err(ImmutableCode) if entity is not new, Err(DuplicateCode) if code already exists
    */
-  async save(entity: ShortUrl): Promise<void> {
+  async save(entity: ShortUrl): AsyncResult<void, CodeError> {
     if (!entity.isNew()) {
-      throw new ImmutableCodeError()
+      return Err(errorFactory.domain('ImmutableCode'))
     }
 
     const code = {
@@ -70,15 +71,16 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
       updatedAt: new Date(),
       schemaVersion: this.version,
     }
+
     try {
       await this.collection.insertOne(code)
+      return Ok(undefined)
     } catch (err) {
       const e = err as MongoServerError
       if (e.code === 11000) {
-        throw new CodeExistsError(`MongoDb: Code ${code.code} already exists `)
+        return Err(errorFactory.domain('DuplicateCode'))
       }
-
-      throw err
+      return Err(errorFactory.domain('UnableToSave'))
     }
   }
 }

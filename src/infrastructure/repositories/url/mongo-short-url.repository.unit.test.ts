@@ -2,7 +2,8 @@ import { Collection, Db, Int32, MongoServerError, ObjectId } from 'mongodb'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
-import { CodeExistsError, ImmutableCodeError } from '@infrastructure/errors/repository.error.js'
+// local type helper mirroring pattern used elsewhere
+type Failure<T> = Exclude<T, { ok: true }>
 import {
   MongoShortUrlRepository,
   MongoShortUrl,
@@ -62,15 +63,16 @@ describe('MongoShortUrlRepository', () => {
   })
 
   describe('save()', () => {
-    it('inserts a new ShortUrl document when not persisted', async () => {
+    it('returns Ok and inserts a new ShortUrl document when not persisted', async () => {
       const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'), 'user-42')
       collection.insertOne.mockResolvedValue({
         acknowledged: true,
         insertedId: new ObjectId(),
       })
 
-      await repo.save(entity)
+      const res = await repo.save(entity)
 
+      expect(res.ok).toBe(true)
       expect(collection.insertOne).toHaveBeenCalledTimes(1)
       const arg = collection.insertOne.mock.calls[0][0] as MongoShortUrl
       expect(arg.code).toBe('abc123')
@@ -80,7 +82,7 @@ describe('MongoShortUrlRepository', () => {
       expect(arg.schemaVersion.valueOf()).toBe(1)
     })
 
-    it('throws CodeExistsError when duplicate key error occurs', async () => {
+    it('returns DuplicateCode error when duplicate key error occurs', async () => {
       const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
       const dupErr = new MongoServerError({
         message: 'E11000 duplicate key',
@@ -88,11 +90,15 @@ describe('MongoShortUrlRepository', () => {
       })
       collection.insertOne.mockRejectedValue(dupErr)
 
-      await expect(repo.save(entity)).rejects.toBeInstanceOf(CodeExistsError)
+      const res = await repo.save(entity)
+      expect(res.ok).toBe(false)
+      const failure: Failure<typeof res> = res as Failure<typeof res>
+      expect(failure.error.kind).toBe('domain')
+      expect(failure.error.type).toBe('DuplicateCode')
       expect(collection.insertOne).toHaveBeenCalled()
     })
 
-    it('throws ImmutableCodeError when trying to save an already-persisted entity', async () => {
+    it('returns ImmutableCode error when trying to save an already-persisted entity', async () => {
       const entity = new ShortUrl(
         'some-id',
         'abc123',
@@ -101,7 +107,11 @@ describe('MongoShortUrlRepository', () => {
         false,
       )
 
-      await expect(repo.save(entity)).rejects.toBeInstanceOf(ImmutableCodeError)
+      const res = await repo.save(entity)
+      expect(res.ok).toBe(false)
+      const failure: Failure<typeof res> = res as Failure<typeof res>
+      expect(failure.error.kind).toBe('domain')
+      expect(failure.error.type).toBe('ImmutableCode')
       expect(collection.insertOne).not.toHaveBeenCalled()
     })
   })
