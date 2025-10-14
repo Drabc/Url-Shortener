@@ -1,7 +1,6 @@
 import type { Pool, PoolClient } from 'pg'
 
 import { PgClient } from '@infrastructure/clients/pg-client.js'
-import { EntityAlreadyExistsError } from '@infrastructure/errors/repository.error.js'
 import {
   PgTransactionBeginError,
   PgTransactionCommitError,
@@ -33,31 +32,40 @@ describe('PgClient', () => {
     })
   })
 
-  describe('insertOrThrow', () => {
-    it('resolves when rowCount > 0', async () => {
+  describe('insert', () => {
+    it('returns Ok when rowCount > 0', async () => {
       pool.query.mockResolvedValue({ rowCount: 1 })
-      await expect(client.insertOrThrow('INSERT', ['a'])).resolves.toBeUndefined()
+      const res = await client.insert('INSERT', ['a'])
+      expect(res.ok).toBe(true)
     })
 
-    it('throws EntityAlreadyExistsError when rowCount is 0', async () => {
+    it('returns infra UniqueViolation when rowCount is 0', async () => {
       pool.query.mockResolvedValue({ rowCount: 0 })
-      await expect(client.insertOrThrow('INSERT', ['a'])).rejects.toBeInstanceOf(
-        EntityAlreadyExistsError,
-      )
+      const res = await client.insert('INSERT', ['a'])
+      expect(res.ok).toBe(false)
+      if (res.ok) throw new Error('expected failure result')
+      expect(res.error.kind).toBe('infra')
+      expect(res.error.type).toBe('UniqueViolation')
     })
 
-    it('throws EntityAlreadyExistsError on unique violation code', async () => {
+    it('returns infra UniqueViolation on unique violation code', async () => {
       const error = Object.assign(new Error('duplicate'), { code: '23505' })
       pool.query.mockRejectedValue(error)
-      await expect(client.insertOrThrow('INSERT', ['a'])).rejects.toBeInstanceOf(
-        EntityAlreadyExistsError,
-      )
+      const res = await client.insert('INSERT', ['a'])
+      expect(res.ok).toBe(false)
+      if (res.ok) throw new Error('expected failure result')
+      expect(res.error.kind).toBe('infra')
+      expect(res.error.type).toBe('UniqueViolation')
     })
 
-    it('re-throws unknown errors', async () => {
+    it('returns UnableToInsert on other errors', async () => {
       const error = new Error('db down')
       pool.query.mockRejectedValue(error)
-      await expect(client.insertOrThrow('INSERT', ['a'])).rejects.toBe(error)
+      const res = await client.insert('INSERT', ['a'])
+      expect(res.ok).toBe(false)
+      if (res.ok) throw new Error('expected failure result')
+      expect(res.error.kind).toBe('infra')
+      expect(res.error.type).toBe('UnableToInsert')
     })
   })
 
