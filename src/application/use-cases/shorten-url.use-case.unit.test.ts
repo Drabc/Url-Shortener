@@ -1,7 +1,7 @@
 import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
-import { MaxCodeGenerationAttemptsError } from '@application/errors/max-code-generation-attempts.error.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
-import { CodeExistsError } from '@infrastructure/errors/repository.error.js'
+import { Ok, Err } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
 
 /**
  * Unit tests for ShortenUrl use case.
@@ -14,7 +14,7 @@ jest.mock('nanoid', () => ({
 
 let mockCodes: string[] = []
 
-describe('ShortenUrl.shortenUrl()', () => {
+describe('shortenUrl()', () => {
   let repo: jest.Mocked<IShortUrlRepository>
   let useCase: ShortenUrl
   const baseUrl = 'http://short'
@@ -31,21 +31,23 @@ describe('ShortenUrl.shortenUrl()', () => {
 
   it('returns shortened url when first code succeeds', async () => {
     mockCodes.push('abc123')
-    repo.save.mockResolvedValue(undefined)
+    repo.save.mockResolvedValue(Ok(undefined))
 
     const result = await useCase.shortenUrl('https://example.com')
-
-    expect(result).toBe(`${baseUrl}/abc123`)
+    expect(result.ok).toBe(true)
+    const okResult = result as typeof result & { ok: true }
+    expect(okResult.value).toBe(`${baseUrl}/abc123`)
     expect(repo.save).toHaveBeenCalledTimes(1)
   })
 
   it('returns user-owned shortened url when userId provided', async () => {
     mockCodes.push('userCode1')
-    repo.save.mockResolvedValue(undefined)
+    repo.save.mockResolvedValue(Ok(undefined))
 
     const result = await useCase.shortenUrl('https://example.com/user', userId)
-
-    expect(result).toBe(`${baseUrl}/userCode1`)
+    expect(result.ok).toBe(true)
+    const okResult = result as typeof result & { ok: true }
+    expect(okResult.value).toBe(`${baseUrl}/userCode1`)
     expect(repo.save).toHaveBeenCalledTimes(1)
     const entityArg = repo.save.mock.calls[0][0]
     expect(entityArg.userId).toBe(userId)
@@ -53,15 +55,15 @@ describe('ShortenUrl.shortenUrl()', () => {
 
   it('retries on collision until success', async () => {
     mockCodes.push('taken1', 'taken2', 'freeOk')
-
     repo.save
-      .mockRejectedValueOnce(new CodeExistsError('taken1'))
-      .mockRejectedValueOnce(new CodeExistsError('taken2'))
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
+      .mockResolvedValueOnce(Ok(undefined))
 
     const result = await useCase.shortenUrl('https://retry.com')
-
-    expect(result).toBe(`${baseUrl}/freeOk`)
+    expect(result.ok).toBe(true)
+    const okResult = result as typeof result & { ok: true }
+    expect(okResult.value).toBe(`${baseUrl}/freeOk`)
     expect(repo.save).toHaveBeenCalledTimes(3)
   })
 
@@ -69,32 +71,36 @@ describe('ShortenUrl.shortenUrl()', () => {
     mockCodes.push('uDup1', 'uDup2', 'uFree')
     repo.save.mockReset()
     repo.save
-      .mockRejectedValueOnce(new CodeExistsError('uDup1'))
-      .mockRejectedValueOnce(new CodeExistsError('uDup2'))
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
+      .mockResolvedValueOnce(Ok(undefined))
 
     const result = await useCase.shortenUrl('https://retry-owned.com', userId)
-    expect(result).toBe(`${baseUrl}/uFree`)
+    expect(result.ok).toBe(true)
+    const okResult = result as typeof result & { ok: true }
+    expect(okResult.value).toBe(`${baseUrl}/uFree`)
     expect(repo.save).toHaveBeenCalledTimes(3)
     repo.save.mock.calls.forEach((c) => expect(c[0].userId).toBe(userId))
   })
 
-  it('throws MaxCodeGenerationAttemptsError after max attempts', async () => {
+  it('returns Err(MaxCodeGenerationAttemptsError) after max attempts', async () => {
     mockCodes.push('dup', 'dup', 'dup', 'dup', 'dup')
-    repo.save.mockRejectedValue(new CodeExistsError('dup'))
+    repo.save.mockResolvedValue(Err(errorFactory.domain('DuplicateCode')))
 
-    await expect(useCase.shortenUrl('https://fail.com')).rejects.toBeInstanceOf(
-      MaxCodeGenerationAttemptsError,
-    )
+    const result = await useCase.shortenUrl('https://fail.com')
+    expect(result.ok).toBe(false)
+    const errResult = result as typeof result & { ok: false }
+    expect(errResult.error.type).toBe('MaxCodeGenerationAttemptsError')
     expect(repo.save).toHaveBeenCalledTimes(5)
   })
 
-  it('throws MaxCodeGenerationAttemptsError after max attempts for user-owned', async () => {
+  it('returns Err(MaxCodeGenerationAttemptsError) after max attempts for user-owned', async () => {
     mockCodes.push('x1', 'x2', 'x3', 'x4', 'x5')
-    repo.save.mockRejectedValue(new CodeExistsError('x'))
+    repo.save.mockResolvedValue(Err(errorFactory.domain('DuplicateCode')))
 
-    await expect(useCase.shortenUrl('https://owned-fail.com', userId)).rejects.toBeInstanceOf(
-      MaxCodeGenerationAttemptsError,
-    )
+    const result = await useCase.shortenUrl('https://owned-fail.com', userId)
+    expect(result.ok).toBe(false)
+    const errResult = result as typeof result & { ok: false }
+    expect(errResult.error.type).toBe('MaxCodeGenerationAttemptsError')
   })
 })
