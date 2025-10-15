@@ -31,11 +31,19 @@ export class AuthController {
    * Registers a new user.
    * @param {Request} req Express request containing the user data (UserDTO) in the body.
    * @param {Response} res Express response used to send the creation status.
+   * @param {NextFunction} next next handler
    * @returns {Promise<void>} Promise that resolves when the user registration process is initiated.
    */
-  async register(req: Request<unknown, void, UserDTO>, res: Response): Promise<void> {
+  async register(
+    req: Request<unknown, void, UserDTO>,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const userDto = req.body
-    await this.registerUser.exec(userDto)
+    const result = await this.registerUser.exec(userDto)
+
+    if (!result.ok) return next(result.error)
+
     res.status(201).send()
   }
 
@@ -43,9 +51,10 @@ export class AuthController {
    * Authenticates a user and issues access/refresh tokens.
    * @param {Request} req Express request containing the user credentials (email, password) in the body.
    * @param {Response} res Express response used to return the access token and set the refresh token cookie.
+   * @param {NextFunction} next next handler
    * @returns {Promise<void>} Promise that resolves after the authentication process completes.
    */
-  async login(req: Request, res: Response): Promise<void> {
+  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { email, password } = req.body
     const fp = this.createFingerPrint(req)
 
@@ -53,12 +62,11 @@ export class AuthController {
     const presentedRefreshHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presentedRefreshToken = this.cookieFormatter.safeDecodeRefreshToken(presentedRefreshHex)
 
-    const { accessToken, refreshToken, expirationDate } = await this.loginUser.exec(
-      email,
-      password,
-      fp,
-      presentedRefreshToken,
-    )
+    const result = await this.loginUser.exec(email, password, fp, presentedRefreshToken)
+
+    if (!result.ok) return next(result.error)
+
+    const { accessToken, refreshToken, expirationDate } = result.value
 
     this.createRefreshTokenCookie(res, refreshToken, expirationDate)
     // TODO: Add metadata type (Bearer), expiration time
@@ -69,9 +77,10 @@ export class AuthController {
    * Logs out the current user session.
    * @param {Request} req Express request containing user ID from authentication middleware.
    * @param {Response} res Express response used to confirm logout and clear cookies.
+   * @param {NextFunction} next next handler
    * @returns {Promise<void>} Promise that resolves after the logout process completes.
    */
-  async logout(req: Request, res: Response): Promise<void> {
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     const userId = req.userId!
     const fp = this.createFingerPrint(req)
 
@@ -79,7 +88,8 @@ export class AuthController {
     const presentedRefreshHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presentedRefreshToken = this.cookieFormatter.safeDecodeRefreshToken(presentedRefreshHex)
 
-    await this.logoutUser.logoutSession(userId, fp, presentedRefreshToken)
+    const result = await this.logoutUser.logoutSession(userId, fp, presentedRefreshToken)
+    if (!result.ok) return next(result.error)
 
     // Clear the refresh token cookie
     res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
@@ -91,16 +101,18 @@ export class AuthController {
    * Logs out all user sessions globally.
    * @param {Request} req Express request containing user ID from authentication middleware.
    * @param {Response} res Express response used to confirm global logout.
+   * @param {NextFunction} next next handler
    * @returns {Promise<void>} Promise that resolves after all sessions are revoked.
    */
-  async logoutAll(req: Request, res: Response): Promise<void> {
+  async logoutAll(req: Request, res: Response, next: NextFunction): Promise<void> {
     const userId = req.userId
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' })
       return
     }
 
-    await this.logoutUser.logoutAllSessions(userId)
+    const result = await this.logoutUser.logoutAllSessions(userId)
+    if (!result.ok) return next(result.error)
 
     // Clear the refresh token cookie on this device too
     res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
@@ -113,6 +125,7 @@ export class AuthController {
    * @param {Request} req Express request containing userId (access token may still be valid or near expiry).
    * @param {Response} res Express response setting new refresh cookie and returning new access token.
    * @param {NextFunction} next next handler
+   * @returns {Promise<void>}
    */
   async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     const fp = this.createFingerPrint(req)
@@ -125,10 +138,7 @@ export class AuthController {
 
     const result = await this.refreshToken.exec(fp, presented)
 
-    if (!result.ok) {
-      next(result.error)
-      return
-    }
+    if (!result.ok) return next(result.error)
 
     const { accessToken, refreshToken, expirationDate } = result.value!
 
