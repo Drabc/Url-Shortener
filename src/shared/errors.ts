@@ -1,5 +1,5 @@
-import { ApplicationError } from '@application/errors/base-application.error.js'
-import { DomainError } from '@domain/errors/base-domain.error.js'
+import { ApplicationError } from '@application/errors/index.js'
+import { DomainError } from '@domain/errors/index.js'
 
 export type ErrorKind =
   | 'domain'

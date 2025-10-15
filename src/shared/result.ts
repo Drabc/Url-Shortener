@@ -5,3 +5,8 @@ export type AsyncResult<T, E> = Promise<Result<T, E>>
 
 export const Ok = <T>(value: T): Ok<T> => ({ ok: true, value })
 export const Err = <E>(error: E): Err<E> => ({ ok: false, error })
+
+export const andThen = <T, U, E>(
+  result: Result<T, E>,
+  fn: (value: T) => Result<U, E>,
+): Result<U, E> => (result.ok ? fn(result.value) : result)
