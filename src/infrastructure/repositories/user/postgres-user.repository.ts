@@ -1,6 +1,9 @@
 import { IUserRepository } from '@domain/repositories/user.repository.interface.js'
 import { User } from '@domain/entities/user.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
+import { BaseDomainError } from '@domain/errors/base-domain.error.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
 
 export type UserRow = {
   id: string
@@ -43,23 +46,26 @@ export class PostgresUserRepository implements IUserRepository {
   /**
    * Persists a new user entity into the database.
    * @param {User} user The user domain entity to persist.
-   * @returns {Promise<void>} Resolves when the user has been persisted.
-   * @throws EntityAlreadyExistsError when the user already exists.
+   * @returns {AsyncResult<void, BaseDomainError<'UnableToSave'>>} Resolves when the user has been persisted.
    */
-  async save(user: User): Promise<void> {
+  async save(user: User): AsyncResult<void, BaseDomainError<'UnableToSave'>> {
     const query = `
       insert into app.users (first_name, last_name, email, password_hash, password_updated_at)
       values ($1, $2, $3, $4, $5)
       on conflict do nothing
     `
 
-    await this.client.insert(query, [
+    const result = await this.client.insert(query, [
       user.firstName,
       user.lastName,
       user.email.value,
       user.passwordHash,
       user.passwordUpdatedAt,
     ])
+
+    if (!result.ok) return Err(errorFactory.domain('UnableToSave'))
+
+    return Ok(undefined)
   }
 
   /**

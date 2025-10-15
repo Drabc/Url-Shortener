@@ -1,7 +1,9 @@
 import { RefreshToken, RefreshTokenStatus } from '@domain/entities/auth/refresh-token.js'
 import { Session, SessionRehydrateArgs, SessionStatus } from '@domain/entities/auth/session.js'
+import { SessionError } from '@domain/errors/repository.error.js'
 import { ISessionRepository } from '@domain/repositories/session.repository.interface.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
+import { AsyncResult, Ok } from '@shared/result.js'
 
 type SessionAggregateRow = {
   id: string
@@ -77,13 +79,13 @@ export class PostgresSessionRepository implements ISessionRepository {
     const sessions = this.toDomain(rows)
     return sessions[0] ?? null
   }
+
   /**
    * Persists the session aggregate (session and its refresh tokens) using upsert semantics.
    * @param {Session} session Session aggregate to persist.
-   * @returns {Promise<void>} Resolves when persistence completes.
-   * @todo Wrap both INSERT ... ON CONFLICT operations in an explicit transaction for atomicity.
+   * @returns {AsyncResult<void, SessionError>} void or Session Error.
    */
-  async save(session: Session): Promise<void> {
+  async save(session: Session): AsyncResult<void, SessionError> {
     // Add transaction
     const sessionQuery = `
       insert into auth.sessions (id, user_id, status, expires_at, last_used_at, client_id, ip, user_agent, ended_at, end_reason)
@@ -159,6 +161,8 @@ export class PostgresSessionRepository implements ISessionRepository {
     )
 
     await this.client.query(refreshTokenQuery, [payload])
+
+    return Ok(undefined)
   }
 
   /**

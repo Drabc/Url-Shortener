@@ -10,6 +10,8 @@ describe('PostgresUserRepository', () => {
   let pg: { findOne: jest.Mock; insert: jest.Mock }
   let repo: PostgresUserRepository
 
+  type Success<T> = Extract<T, { ok: true }>
+
   beforeEach(() => {
     pg = { findOne: jest.fn(), insert: jest.fn() }
     repo = new PostgresUserRepository(pg as unknown as PgClient)
@@ -88,9 +90,9 @@ describe('PostgresUserRepository', () => {
         'hash',
         new Date('2025-01-02T00:00:00.000Z'),
       )
-
-      await expect(repo.save(user)).resolves.toBeUndefined()
-
+      const res = await repo.save(user)
+      const okRes: Success<typeof res> = res as Success<typeof res>
+      expect(okRes.ok).toBe(true)
       expect(pg.insert).toHaveBeenCalledTimes(1)
       const [query, values] = pg.insert.mock.calls[0]
       expect(query).toContain('insert into app.users')
