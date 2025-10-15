@@ -1,10 +1,10 @@
 import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
-import { NotFoundError } from '@application/errors/not-found.error.js'
+import { Ok } from '@shared/result.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 
-describe('ResolveUrl.resolveUrl()', () => {
+describe('resolveUrl()', () => {
   let repo: jest.Mocked<IShortUrlRepository>
   let useCase: ResolveUrl
 
@@ -21,13 +21,16 @@ describe('ResolveUrl.resolveUrl()', () => {
     repo.findByCode.mockResolvedValue(entity as unknown as ReturnType<typeof repo.findByCode>)
 
     const result = await useCase.resolveUrl('abc123')
-
     expect(repo.findByCode).toHaveBeenCalledWith('abc123')
-    expect(result).toBe('https://example.com')
+    expect(result).toEqual(Ok('https://example.com'))
   })
 
-  it('throws NotFoundError when code missing', async () => {
+  it('returns Err(ResourceNotFound) when code missing', async () => {
     repo.findByCode.mockResolvedValue(null)
-    await expect(useCase.resolveUrl('missing')).rejects.toBeInstanceOf(NotFoundError)
+    const res = await useCase.resolveUrl('missing')
+    expect(res.ok).toBe(false)
+    const errRes = res as typeof res & { ok: false }
+    expect(errRes.error.kind).toBe('application')
+    expect(errRes.error.type).toBe('ResourceNotFound')
   })
 })

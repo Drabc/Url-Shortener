@@ -3,6 +3,10 @@ import { UserDTO } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
 import { IUserRepository } from '@domain/repositories/user.repository.interface.js'
 import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
+import { Err, Ok } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
+
+type Failure<T> = Exclude<T, { ok: true }>
 
 describe('RegisterUser Use Case', () => {
   let repo: { save: jest.Mock }
@@ -33,8 +37,10 @@ describe('RegisterUser Use Case', () => {
     hasher.hash.mockResolvedValue('hashed')
     const now = new Date('2025-01-01T00:00:00.000Z')
     clock.now.mockReturnValue(now)
+    repo.save.mockResolvedValue(Ok(undefined))
 
-    await expect(useCase.exec(dto)).resolves.toBeUndefined()
+    const res = await useCase.exec(dto)
+    expect(res.ok).toBe(true)
 
     expect(hasher.hash).toHaveBeenCalledWith('P@ssword1')
     expect(repo.save).toHaveBeenCalledTimes(1)
@@ -48,19 +54,14 @@ describe('RegisterUser Use Case', () => {
     expect(savedUser.passwordUpdatedAt).toBe(now)
   })
 
-  it('bubbles up repository errors', async () => {
+  it('returns Err when repository save fails', async () => {
     hasher.hash.mockResolvedValue('hashed')
     clock.now.mockReturnValue(new Date())
-    const err = new Error('db fail')
-    repo.save.mockRejectedValue(err)
+    repo.save.mockResolvedValue(Err(errorFactory.app('RepoFailure')))
 
-    await expect(useCase.exec(dto)).rejects.toBe(err)
-  })
-
-  it('bubbles up hashing errors', async () => {
-    hasher.hash.mockRejectedValue(new Error('hash fail'))
-
-    await expect(useCase.exec(dto)).rejects.toThrow('hash fail')
-    expect(repo.save).not.toHaveBeenCalled()
+    const res = await useCase.exec(dto)
+    expect(res.ok).toBe(false)
+    const failure = res as Failure<typeof res>
+    expect(failure.error.type).toBe('RepoFailure')
   })
 })

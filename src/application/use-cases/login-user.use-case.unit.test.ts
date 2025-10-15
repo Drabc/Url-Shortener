@@ -1,4 +1,5 @@
 import { LoginUser } from '@application/use-cases/login-user.use-case.js'
+import { Ok } from '@shared/result.js'
 import { IUserRepository } from '@domain/repositories/user.repository.interface.js'
 import { ISessionRepository } from '@domain/repositories/session.repository.interface.js'
 import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
@@ -9,7 +10,9 @@ import { FingerPrint } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
 import { Session } from '@domain/entities/auth/session.js'
 import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
-import { InvalidCredentialsError } from '@application/errors/invalid-credentials.error.js'
+
+type Success<T> = T & { ok: true }
+type Failure<T> = Exclude<T, { ok: true }>
 
 /**
  * Tests for the LoginUser use case including newly added idempotent behavior when a refresh token is re-presented.
@@ -58,6 +61,8 @@ describe('LoginUser.exec()', () => {
         sessionTtl: config.sessionTtl,
       } as unknown as import('@infrastructure/config/config.js').Config,
     )
+    // default save mock returns successful Result
+    sessionRepo.save.mockResolvedValue(Ok(undefined))
   })
 
   it('creates new session when no presented refresh token', async () => {
@@ -72,10 +77,12 @@ describe('LoginUser.exec()', () => {
     jwtIssuer.issue.mockResolvedValue('jwt-access')
 
     const result = await useCase.exec('user@example.com', 'password', fingerPrint)
+    const okResult = result as Success<typeof result>
 
-    expect(result.accessToken).toBe('jwt-access')
-    expect(result.refreshToken).toBe(generatedSecret.value)
-    expect(result.expirationDate instanceof Date).toBe(true)
+    expect(okResult.ok).toBe(true)
+    expect(okResult.value.accessToken).toBe('jwt-access')
+    expect(okResult.value.refreshToken).toBe(generatedSecret.value)
+    expect(okResult.value.expirationDate instanceof Date).toBe(true)
     expect(sessionRepo.save).toHaveBeenCalledTimes(1)
   })
 
@@ -105,10 +112,11 @@ describe('LoginUser.exec()', () => {
     const presented = Buffer.from('plain-refresh')
 
     const result = await useCase.exec('user@example.com', 'password', fingerPrint, presented)
-
-    expect(result.accessToken).toBe('jwt-existing-access')
-    expect(result.refreshToken).toBe(presented)
-    expect(result.expirationDate.toISOString()).toBe(activeSession.expiresAt.toISOString())
+    expect(result.ok).toBe(true)
+    const okResult = result as Success<typeof result>
+    expect(okResult.value.accessToken).toBe('jwt-existing-access')
+    expect(okResult.value.refreshToken).toBe(presented)
+    expect(okResult.value.expirationDate.toISOString()).toBe(activeSession.expiresAt.toISOString())
     expect(sessionRepo.save).not.toHaveBeenCalled()
     expect(jwtIssuer.issue).toHaveBeenCalledTimes(1)
     expect(tokenDigester.verify).toHaveBeenCalledWith(presented, activeToken.digest)
@@ -141,10 +149,11 @@ describe('LoginUser.exec()', () => {
     const presented = Buffer.from('mismatch-token')
 
     const result = await useCase.exec('user@example.com', 'password', fingerPrint, presented)
-
-    expect(result.accessToken).toBe('jwt-new-access')
-    expect(result.refreshToken).toBe(generatedSecret.value)
-    expect(result.expirationDate instanceof Date).toBe(true)
+    expect(result.ok).toBe(true)
+    const okResult = result as Success<typeof result>
+    expect(okResult.value.accessToken).toBe('jwt-new-access')
+    expect(okResult.value.refreshToken).toBe(generatedSecret.value)
+    expect(okResult.value.expirationDate instanceof Date).toBe(true)
     expect(sessionRepo.save).toHaveBeenCalledTimes(1)
   })
 
@@ -178,27 +187,32 @@ describe('LoginUser.exec()', () => {
       fingerPrint,
       Buffer.from('any'),
     )
-
-    expect(result.accessToken).toBe('jwt-brand-new')
-    expect(result.refreshToken).toBe(generatedSecret.value)
-    expect(result.expirationDate instanceof Date).toBe(true)
+    expect(result.ok).toBe(true)
+    const okResult = result as Success<typeof result>
+    expect(okResult.value.accessToken).toBe('jwt-brand-new')
+    expect(okResult.value.refreshToken).toBe(generatedSecret.value)
+    expect(okResult.value.expirationDate instanceof Date).toBe(true)
     expect(sessionRepo.save).toHaveBeenCalledTimes(1)
   })
 
-  it('throws InvalidCredentialsError when user not found', async () => {
+  it('returns InvalidCredentials error when user not found', async () => {
     userRepo.findByEmail.mockResolvedValue(null)
 
-    await expect(
-      useCase.exec('missing@example.com', 'password', fingerPrint),
-    ).rejects.toBeInstanceOf(InvalidCredentialsError)
+    const res = await useCase.exec('missing@example.com', 'password', fingerPrint)
+    expect(res.ok).toBe(false)
+    const failure: Failure<typeof res> = res as Failure<typeof res>
+    expect(failure.error.kind).toBe('application')
+    expect(failure.error.type).toBe('InvalidCredentials')
   })
 
-  it('throws InvalidCredentialsError when password invalid', async () => {
+  it('returns InvalidCredentials error when password invalid', async () => {
     userRepo.findByEmail.mockResolvedValue(user)
     passwordHasher.verify.mockResolvedValue(false)
 
-    await expect(useCase.exec('user@example.com', 'bad', fingerPrint)).rejects.toBeInstanceOf(
-      InvalidCredentialsError,
-    )
+    const res = await useCase.exec('user@example.com', 'bad', fingerPrint)
+    expect(res.ok).toBe(false)
+    const failure: Failure<typeof res> = res as Failure<typeof res>
+    expect(failure.error.kind).toBe('application')
+    expect(failure.error.type).toBe('InvalidCredentials')
   })
 })
