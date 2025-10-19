@@ -6,6 +6,7 @@ import { ShortUrl } from '@domain/entities/short-url.js'
 import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { ShortenError } from '@application/errors/index.js'
 import { errorFactory } from '@shared/errors.js'
+import { InvalidValue } from '@domain/errors/index.js'
 
 /**
  * Use case responsible for generating and persisting a short URL.
@@ -30,21 +31,25 @@ export class ShortenUrl {
    * @param {string | undefined} userId - Optional owner user id. When provided, the short url will be associated with this user.
    * @returns {AsyncResult<string, ShortenError>} A promise that resolves to the full shortened URL (including base URL and code).
    */
-  async shortenUrl(originalUrl: string, userId?: string): AsyncResult<string, ShortenError> {
+  async shortenUrl(
+    originalUrl: string,
+    userId?: string,
+  ): AsyncResult<string, ShortenError | InvalidValue> {
     for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
       const code = this.nanoid()
-      const candidate = new ShortUrl('', code, new ValidUrl(originalUrl), userId)
 
-      const result = await this.repo.save(candidate)
+      const codeResult = await ValidUrl.create(originalUrl)
+        .andThen((validUrl) => ShortUrl.create('', code, validUrl, userId))
+        .andThenAsync((validCode) => this.repo.save(validCode))
 
-      if (!result.ok) {
-        if (result.error.type === 'DuplicateCode') continue
-        return result
+      if (!codeResult.ok) {
+        if (codeResult.error.type === 'DuplicateCode') continue
+        return Err(codeResult.error as ShortenError | InvalidValue)
       }
 
       return Ok(`${this.baseUrl}/${code}`)
     }
 
-    return Err(errorFactory.app('MaxCodeGenerationAttemptsError'))
+    return Err(errorFactory.app('MaxCodeGenerationAttemptsError', 'internal_error'))
   }
 }

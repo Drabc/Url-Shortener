@@ -1,3 +1,6 @@
+import { InvalidAccessToken } from '@application/errors/index.js'
+import { AsyncResult } from '@shared/result.js'
+
 export type VerifiedJwt = {
   subject: string
   issuer: string
@@ -8,5 +11,5 @@ export type VerifiedJwt = {
 }
 
 export interface IJwtVerifier {
-  verify(jwt: string): Promise<VerifiedJwt | null>
+  verify(jwt: string): AsyncResult<VerifiedJwt | null, InvalidAccessToken>
 }

@@ -8,6 +8,7 @@ import { IRefreshSecretGenerator } from '@application/ports/refresh-secret-gener
 import { IJwtIssuer } from '@application/ports/jwt-issuer.js'
 import { FingerPrint } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
+import { Email } from '@domain/value-objects/email.js'
 import { Session } from '@domain/entities/auth/session.js'
 import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
 
@@ -18,12 +19,12 @@ type Failure<T> = Exclude<T, { ok: true }>
  * Tests for the LoginUser use case including newly added idempotent behavior when a refresh token is re-presented.
  */
 describe('LoginUser.exec()', () => {
-  let passwordHasher: { verify: jest.Mock }
-  let tokenDigester: { digest: jest.Mock; verify: jest.Mock }
-  let refreshSecretGenerator: { generate: jest.Mock }
-  let jwtIssuer: { issue: jest.Mock }
-  let sessionRepo: { findActiveByUserId: jest.Mock; save: jest.Mock }
-  let userRepo: { findByEmail: jest.Mock }
+  let passwordHasher: jest.Mocked<IPasswordHasher>
+  let tokenDigester: jest.Mocked<ITokenDigester>
+  let refreshSecretGenerator: jest.Mocked<IRefreshSecretGenerator>
+  let jwtIssuer: jest.Mocked<IJwtIssuer>
+  let sessionRepo: jest.Mocked<ISessionRepository>
+  let userRepo: jest.Mocked<IUserRepository>
   let clock: { now: jest.Mock }
   let config: { sessionSecretLength: number; sessionTtl: number }
   let useCase: LoginUser
@@ -34,29 +35,34 @@ describe('LoginUser.exec()', () => {
     rawUa: 'jest-test',
   }
 
-  // Minimal Email value object substitute to avoid using any
-  const emailVo = { value: 'user@example.com' } as { value: string }
-  const user = new User('user-1', 'First', 'Last', emailVo, 'hash', new Date())
+  // Pre-create a valid email and user using Success/Failure narrowing (no throws)
+  const emailRes = Email.create('user@example.com')
+  const email = (emailRes as Success<typeof emailRes>).value
+  const userRes = User.create('user-1', 'First', 'Last', email, 'hash', new Date())
+  const user = (userRes as Success<typeof userRes>).value
 
   beforeEach(() => {
-    passwordHasher = { verify: jest.fn() }
+    passwordHasher = { hash: jest.fn(), verify: jest.fn() }
     tokenDigester = { digest: jest.fn(), verify: jest.fn() }
     refreshSecretGenerator = { generate: jest.fn() }
     jwtIssuer = { issue: jest.fn() }
-    sessionRepo = { findActiveByUserId: jest.fn(), save: jest.fn() }
-    userRepo = { findByEmail: jest.fn() }
+    sessionRepo = {
+      findActiveByUserId: jest.fn(),
+      findSessionForRefresh: jest.fn(),
+      save: jest.fn(),
+    }
+    userRepo = { findById: jest.fn(), findByEmail: jest.fn(), save: jest.fn() }
     clock = { now: jest.fn() }
     config = { sessionSecretLength: 64, sessionTtl: 3600 }
     useCase = new LoginUser(
-      passwordHasher as unknown as IPasswordHasher,
-      tokenDigester as unknown as ITokenDigester,
-      refreshSecretGenerator as unknown as IRefreshSecretGenerator,
-      jwtIssuer as unknown as IJwtIssuer,
-      sessionRepo as unknown as ISessionRepository,
-      userRepo as unknown as IUserRepository,
+      passwordHasher,
+      tokenDigester,
+      refreshSecretGenerator,
+      jwtIssuer,
+      sessionRepo,
+      userRepo,
       clock as { now: () => Date },
       {
-        // minimal subset but widened to Config via unknown cast
         sessionSecretLength: config.sessionSecretLength,
         sessionTtl: config.sessionTtl,
       } as unknown as import('@infrastructure/config/config.js').Config,
@@ -66,7 +72,7 @@ describe('LoginUser.exec()', () => {
   })
 
   it('creates new session when no presented refresh token', async () => {
-    userRepo.findByEmail.mockResolvedValue(user)
+    userRepo.findByEmail.mockResolvedValue(Ok(user))
     passwordHasher.verify.mockResolvedValue(true)
     const now = new Date('2025-01-01T00:00:00.000Z')
     clock.now.mockReturnValue(now)
@@ -87,7 +93,7 @@ describe('LoginUser.exec()', () => {
   })
 
   it('returns existing access (idempotent path) when presented refresh token matches active session token', async () => {
-    userRepo.findByEmail.mockResolvedValue(user)
+    userRepo.findByEmail.mockResolvedValue(Ok(user))
     passwordHasher.verify.mockResolvedValue(true)
     const now = new Date('2025-01-01T00:00:00.000Z')
     clock.now.mockReturnValue(now)
@@ -123,7 +129,7 @@ describe('LoginUser.exec()', () => {
   })
 
   it('falls back to new session when presented refresh token does not match digest', async () => {
-    userRepo.findByEmail.mockResolvedValue(user)
+    userRepo.findByEmail.mockResolvedValue(Ok(user))
     passwordHasher.verify.mockResolvedValue(true)
     const now = new Date('2025-01-01T00:00:00.000Z')
     clock.now.mockReturnValue(now)
@@ -158,7 +164,7 @@ describe('LoginUser.exec()', () => {
   })
 
   it('ignores sessions from other clients when attempting idempotent path', async () => {
-    userRepo.findByEmail.mockResolvedValue(user)
+    userRepo.findByEmail.mockResolvedValue(Ok(user))
     passwordHasher.verify.mockResolvedValue(true)
     const now = new Date('2025-01-01T00:00:00.000Z')
     clock.now.mockReturnValue(now)
@@ -196,7 +202,7 @@ describe('LoginUser.exec()', () => {
   })
 
   it('returns InvalidCredentials error when user not found', async () => {
-    userRepo.findByEmail.mockResolvedValue(null)
+    userRepo.findByEmail.mockResolvedValue(Ok(null))
 
     const res = await useCase.exec('missing@example.com', 'password', fingerPrint)
     expect(res.ok).toBe(false)
@@ -206,7 +212,7 @@ describe('LoginUser.exec()', () => {
   })
 
   it('returns InvalidCredentials error when password invalid', async () => {
-    userRepo.findByEmail.mockResolvedValue(user)
+    userRepo.findByEmail.mockResolvedValue(Ok(user))
     passwordHasher.verify.mockResolvedValue(false)
 
     const res = await useCase.exec('user@example.com', 'bad', fingerPrint)

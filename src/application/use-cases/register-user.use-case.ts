@@ -3,7 +3,7 @@ import { IUserRepository } from '@domain/repositories/user.repository.interface.
 import { UserDTO } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
 import { Clock } from '@application/shared/clock.js'
-import { andThen, AsyncResult, Ok } from '@shared/result.js'
+import { AsyncResult } from '@shared/result.js'
 import { AnyError } from '@shared/errors.js'
 
 /**
@@ -27,15 +27,13 @@ export class RegisterUser {
   async exec(data: UserDTO): AsyncResult<void, AnyError> {
     const passwordHash = await this.hasher.hash(data.password)
 
-    const user = new User(
+    return User.create(
       data.id,
       data.firstName,
       data.lastName,
       data.email,
       passwordHash,
       this.clock.now(),
-    )
-
-    return andThen(await this.repo.save(user), () => Ok(undefined))
+    ).andThenAsync((user) => this.repo.save(user))
   }
 }

@@ -57,11 +57,11 @@ describe('RegisterUser Use Case', () => {
   it('returns Err when repository save fails', async () => {
     hasher.hash.mockResolvedValue('hashed')
     clock.now.mockReturnValue(new Date())
-    repo.save.mockResolvedValue(Err(errorFactory.app('RepoFailure')))
+    repo.save.mockResolvedValue(Err(errorFactory.app('ResourceNotFound', 'not_found')))
 
     const res = await useCase.exec(dto)
     expect(res.ok).toBe(false)
     const failure = res as Failure<typeof res>
-    expect(failure.error.type).toBe('RepoFailure')
+    expect(failure.error.type).toBe('ResourceNotFound')
   })
 })

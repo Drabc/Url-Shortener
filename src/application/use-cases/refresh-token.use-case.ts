@@ -43,7 +43,8 @@ export class RefreshToken {
 
     const presentedDigest = this.tokenDigester.digest(presentedRefreshToken)
     const session = await this.sessionRepo.findSessionForRefresh(presentedDigest.value)
-    const invalidSessionResponse = (cause: string) => Err(errorFactory.app('InvalidSession', cause))
+    const invalidSessionResponse = (cause: string) =>
+      Err(errorFactory.app('InvalidSession', 'unauthorized', { cause }))
 
     if (!session) return invalidSessionResponse('Session not Found')
 
@@ -52,23 +53,18 @@ export class RefreshToken {
 
     const newPlainSecret = this.refreshSecretGenerator.generate(this.sessionSecretLength)
     const newDigest = this.tokenDigester.digest(newPlainSecret.value)
-    const rotateResult = session.rotateToken(
-      presentedRefreshToken,
-      newDigest,
-      this.tokenDigester,
-      now,
-    )
-    await this.sessionRepo.save(session)
 
-    if (!rotateResult.ok) {
-      return rotateResult
-    }
+    const saveResult = await session
+      .rotateToken(presentedRefreshToken, newDigest, this.tokenDigester, now)
+      .andThenAsync(() => this.sessionRepo.save(session))
 
-    const accessToken = await this.jwtIssuer.issue(session.userId)
-    return Ok({
-      accessToken,
-      refreshToken: newPlainSecret.value,
-      expirationDate: session.expiresAt,
+    return saveResult.andThenAsync(async () => {
+      const accessToken = await this.jwtIssuer.issue(session.userId)
+      return Ok({
+        accessToken,
+        refreshToken: newPlainSecret.value,
+        expirationDate: session.expiresAt,
+      })
     })
   }
 }

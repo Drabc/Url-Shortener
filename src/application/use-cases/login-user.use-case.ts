@@ -8,7 +8,7 @@ import { FingerPrint } from '@application/dtos.js'
 import { Clock } from '@application/shared/clock.js'
 import { Config } from '@infrastructure/config/config.js'
 import { IJwtIssuer } from '@application/ports/jwt-issuer.js'
-import { andThen, AsyncResult, Err, Ok } from '@shared/result.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { AnyError, errorFactory } from '@shared/errors.js'
 
 type LoginResponse = {
@@ -58,14 +58,17 @@ export class LoginUser {
     fingerPrint: FingerPrint,
     presentedRefreshToken?: Buffer,
   ): AsyncResult<LoginResponse, AnyError> {
-    const user = await this.userRepo.findByEmail(email)
+    const userResult = await this.userRepo.findByEmail(email)
     const now = this.clock.now()
 
     // Return auth error to prevent enumeration attack
-    if (!user) return Err(errorFactory.app('InvalidCredentials'))
+    if (!userResult.ok || !userResult.value)
+      return Err(errorFactory.app('InvalidCredentials', 'unauthorized'))
+
+    const user = userResult.value
 
     if (!(await this.passwordHasher.verify(password, user.passwordHash)))
-      return Err(errorFactory.app('InvalidCredentials'))
+      return Err(errorFactory.app('InvalidCredentials', 'unauthorized'))
 
     // Idempotent reuse path: If caller supplied a refresh token, attempt to locate an existing active session
     // for this user + client whose active token matches. If found, only a new access token is issued.
@@ -99,7 +102,7 @@ export class LoginUser {
 
     const accessToken = await this.jwtIssuer.issue(user.id)
 
-    return andThen(await this.sessionRepo.save(session), () => {
+    return (await this.sessionRepo.save(session)).andThen(() => {
       return Ok({
         accessToken,
         refreshToken: refreshToken.value,

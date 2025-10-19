@@ -2,7 +2,7 @@ import { ISessionRepository } from '@domain/repositories/session.repository.inte
 import { Clock } from '@application/shared/clock.js'
 import { FingerPrint } from '@application/dtos.js'
 import { ITokenDigester } from '@domain/utils/token-digester.js'
-import { andThen, AsyncResult, Ok } from '@shared/result.js'
+import { all, AsyncResult, Ok } from '@shared/result.js'
 import { AnyError } from '@shared/errors.js'
 
 /**
@@ -50,8 +50,7 @@ export class LogoutUser {
         session.hasActiveRefreshToken(refreshToken, this.tokenDigester)
       ) {
         session.revoke(now, 'user_logout')
-        const result = await this.sessionRepo.save(session)
-        return andThen(result, () => Ok(undefined))
+        return await this.sessionRepo.save(session)
       }
     }
 
@@ -76,10 +75,6 @@ export class LogoutUser {
       activeSessions.map((session) => this.sessionRepo.save(session)),
     )
 
-    for (let result of results) {
-      if (!result.ok) return result
-    }
-
-    return Ok(undefined)
+    return all(...results).andThen(() => Ok(undefined))
   }
 }

@@ -2,6 +2,7 @@ import { IShortUrlRepository } from '@domain/repositories/short-url.repository.i
 import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { errorFactory } from '@shared/errors.js'
 import { ResourceNotFoundError } from '@application/errors/index.js'
+import { InvalidUrl } from '@domain/errors/index.js'
 
 /**
  * Use case responsible for resolving a short code to its original URL.
@@ -15,11 +16,15 @@ export class ResolveUrl {
    * @param {string} code - The short code to resolve.
    * @returns {AsyncResult<string, ResourceNotFoundError>} A promise that resolves to the original URL.
    */
-  async resolveUrl(code: string): AsyncResult<string, ResourceNotFoundError> {
-    const shortUrl = await this.repo.findByCode(code)
-    if (!shortUrl) {
-      return Err(errorFactory.app('ResourceNotFound', `Code ${code} not found`))
-    }
-    return Ok(shortUrl.url)
+  async resolveUrl(code: string): AsyncResult<string, ResourceNotFoundError | InvalidUrl> {
+    const result = await this.repo.findByCode(code)
+    return result.andThen((code) => {
+      if (!code) {
+        return Err(
+          errorFactory.app('ResourceNotFound', 'not_found', { cause: `Code ${code} not found` }),
+        )
+      }
+      return Ok(code.url)
+    })
   }
 }

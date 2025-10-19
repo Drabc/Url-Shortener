@@ -56,8 +56,8 @@ describe('shortenUrl()', () => {
   it('retries on collision until success', async () => {
     mockCodes.push('taken1', 'taken2', 'freeOk')
     repo.save
-      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
-      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode', 'duplicate')))
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode', 'duplicate')))
       .mockResolvedValueOnce(Ok(undefined))
 
     const result = await useCase.shortenUrl('https://retry.com')
@@ -71,8 +71,8 @@ describe('shortenUrl()', () => {
     mockCodes.push('uDup1', 'uDup2', 'uFree')
     repo.save.mockReset()
     repo.save
-      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
-      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode')))
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode', 'duplicate')))
+      .mockResolvedValueOnce(Err(errorFactory.domain('DuplicateCode', 'duplicate')))
       .mockResolvedValueOnce(Ok(undefined))
 
     const result = await useCase.shortenUrl('https://retry-owned.com', userId)
@@ -85,7 +85,7 @@ describe('shortenUrl()', () => {
 
   it('returns Err(MaxCodeGenerationAttemptsError) after max attempts', async () => {
     mockCodes.push('dup', 'dup', 'dup', 'dup', 'dup')
-    repo.save.mockResolvedValue(Err(errorFactory.domain('DuplicateCode')))
+    repo.save.mockResolvedValue(Err(errorFactory.domain('DuplicateCode', 'duplicate')))
 
     const result = await useCase.shortenUrl('https://fail.com')
     expect(result.ok).toBe(false)
@@ -96,7 +96,7 @@ describe('shortenUrl()', () => {
 
   it('returns Err(MaxCodeGenerationAttemptsError) after max attempts for user-owned', async () => {
     mockCodes.push('x1', 'x2', 'x3', 'x4', 'x5')
-    repo.save.mockResolvedValue(Err(errorFactory.domain('DuplicateCode')))
+    repo.save.mockResolvedValue(Err(errorFactory.domain('DuplicateCode', 'duplicate')))
 
     const result = await useCase.shortenUrl('https://owned-fail.com', userId)
     expect(result.ok).toBe(false)

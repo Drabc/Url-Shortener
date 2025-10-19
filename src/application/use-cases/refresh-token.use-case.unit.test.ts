@@ -5,6 +5,7 @@ import { FingerPrint } from '@application/dtos.js'
 import { ISessionRepository } from '@domain/repositories/session.repository.interface.js'
 import { ITokenDigester } from '@domain/utils/token-digester.js'
 import { Session } from '@domain/entities/auth/session.js'
+import { Ok, Err } from '@shared/result.js'
 
 import { RefreshToken as RefreshTokenUC } from './refresh-token.use-case.js'
 
@@ -53,7 +54,7 @@ describe('RefreshToken.exec()', () => {
       clientId: fp.clientId,
       status: 'active',
       tokens: [],
-      rotateToken: jest.fn(() => ({ ok: true })),
+      rotateToken: jest.fn(() => Ok(undefined)),
       ...overrides,
     } as unknown as Session
   }
@@ -61,6 +62,7 @@ describe('RefreshToken.exec()', () => {
   it('successfully rotates and returns new tokens', async () => {
     const session = makeSession()
     sessionRepo.findSessionForRefresh.mockResolvedValue(session)
+    sessionRepo.save.mockResolvedValue(Ok(undefined))
     const result = await uc.exec(fp, presented)
     expect(digester.digest).toHaveBeenCalledWith(presented)
     expect(session.rotateToken).toHaveBeenCalledWith(presented, newDigest, digester, now)
@@ -95,14 +97,18 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates expired session', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() => ({
-        ok: false,
-        error: { kind: 'domain', type: 'InvalidSession', cause: 'Expired session' },
-      })),
+      rotateToken: jest.fn(() =>
+        Err({
+          kind: 'domain',
+          type: 'InvalidSession',
+          category: 'unknown',
+          cause: 'Expired session',
+        }),
+      ),
     })
     sessionRepo.findSessionForRefresh.mockResolvedValue(session)
     const result = await uc.exec(fp, presented)
-    expect(sessionRepo.save).toHaveBeenCalledWith(session)
+    expect(sessionRepo.save).not.toHaveBeenCalled()
     expect(result.ok).toBe(false)
     const err = (result as Exclude<typeof result, { ok: true }>).error
     expect(err.kind).toBe('domain')
@@ -112,18 +118,18 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates reuse detected', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() => ({
-        ok: false,
-        error: {
+      rotateToken: jest.fn(() =>
+        Err({
           kind: 'domain',
           type: 'InvalidSession',
+          category: 'unknown',
           cause: 'Refresh token reuse detected',
-        },
-      })),
+        }),
+      ),
     })
     sessionRepo.findSessionForRefresh.mockResolvedValue(session)
     const result = await uc.exec(fp, presented)
-    expect(sessionRepo.save).toHaveBeenCalledWith(session)
+    expect(sessionRepo.save).not.toHaveBeenCalled()
     expect(result.ok).toBe(false)
     const err = (result as Exclude<typeof result, { ok: true }>).error
     expect(err.cause).toContain('reuse')
@@ -131,14 +137,18 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates no active token', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() => ({
-        ok: false,
-        error: { kind: 'domain', type: 'InvalidSession', cause: 'No active refresh token' },
-      })),
+      rotateToken: jest.fn(() =>
+        Err({
+          kind: 'domain',
+          type: 'InvalidSession',
+          category: 'unknown',
+          cause: 'No active refresh token',
+        }),
+      ),
     })
     sessionRepo.findSessionForRefresh.mockResolvedValue(session)
     const result = await uc.exec(fp, presented)
-    expect(sessionRepo.save).toHaveBeenCalledWith(session)
+    expect(sessionRepo.save).not.toHaveBeenCalled()
     expect(result.ok).toBe(false)
     const err = (result as Exclude<typeof result, { ok: true }>).error
     expect(err.cause).toContain('No active')
@@ -146,14 +156,18 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates session not active', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() => ({
-        ok: false,
-        error: { kind: 'domain', type: 'InvalidSession', cause: 'Session is not Active' },
-      })),
+      rotateToken: jest.fn(() =>
+        Err({
+          kind: 'domain',
+          type: 'InvalidSession',
+          category: 'unknown',
+          cause: 'Session is not Active',
+        }),
+      ),
     })
     sessionRepo.findSessionForRefresh.mockResolvedValue(session)
     const result = await uc.exec(fp, presented)
-    expect(sessionRepo.save).toHaveBeenCalledWith(session)
+    expect(sessionRepo.save).not.toHaveBeenCalled()
     expect(result.ok).toBe(false)
     const err = (result as Exclude<typeof result, { ok: true }>).error
     expect(err.cause).toContain('not Active')
