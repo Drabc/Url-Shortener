@@ -1,11 +1,13 @@
 import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg'
 
-import { EntityAlreadyExistsError } from '@infrastructure/errors/repository.error.js'
 import { getRunner, SqlRunnerFetcher, SqlUnitOfWork } from '@infrastructure/db/txContext.js'
 import {
   PgTransactionBeginError,
   PgTransactionCommitError,
 } from '@infrastructure/errors/pg-client.error.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
+import { InsertError } from '@infrastructure/errors/index.js'
+import { errorFactory } from '@shared/errors.js'
 
 const PG_ERROR = {
   UNIQUE: '23505',
@@ -46,27 +48,30 @@ export class PgClient {
   }
 
   /**
-   * Executes an insert query and throws EntityAlreadyExistsError on unique violation or when no rows were inserted.
+   * Inserts a row using the provided SQL statement and parameters.
    * @param {string} query SQL insert (or upsert) statement to execute.
    * @param {unknown[]} values Parameter values for the query.
-   * @throws {EntityAlreadyExistsError} If a unique constraint is violated or no row was inserted.
+   * @returns {AsyncResult<void, InsertError>} void or InsertError on failure.
    */
-  async insertOrThrow(query: string, values: unknown[]): Promise<void> {
+  async insert(query: string, values: unknown[]): AsyncResult<void, InsertError> {
     try {
       const result = await this.pool.query(query, values)
 
       if (result.rowCount === 0) {
-        throw new EntityAlreadyExistsError()
+        return Err(errorFactory.infra('UniqueViolation', 'duplicate'))
       }
     } catch (err) {
       const e = err as { code?: string; detail?: string }
 
       if (e.code === PG_ERROR.UNIQUE) {
-        throw new EntityAlreadyExistsError()
+        return Err(errorFactory.infra('UniqueViolation', 'duplicate'))
       }
 
-      throw e
+      return Err(
+        errorFactory.infra('UnableToInsert', 'unknown', { cause: e.detail ?? String(err) }),
+      )
     }
+    return Ok(undefined)
   }
 
   /**

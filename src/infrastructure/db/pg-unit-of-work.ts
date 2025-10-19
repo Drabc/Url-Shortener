@@ -1,7 +1,8 @@
 import { IUnitOfWork } from '@application/ports/unit-of-work.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
-
-import { runWithRunner } from './txContext.js'
+import { runWithRunner } from '@infrastructure/db/txContext.js'
+import { AnyError } from '@shared/errors.js'
+import { AsyncResult } from '@shared/result.js'
 
 /**
  * Unit of Work implementation backed by a PostgreSQL client, coordinating execution within a single transaction boundary.
@@ -19,16 +20,19 @@ export class PgUnitOfWork implements IUnitOfWork {
    * Executes the provided function within a database transaction boundary.
    * Begins a transaction, runs the callback using the transaction runner and commits on success,
    * rolling back and rethrowing the error if the callback fails.
-   * @template T The return type of the callback.
-   * @param {() => Promise<T>} fn The asynchronous callback to execute within the transaction.
-   * @returns {Promise<T>} A promise resolving to the callback result if successful.
+   * @param {() => AsyncResult<void, AnyError>} fn The asynchronous callback to execute within the transaction.
+   * @returns {Promise<void>} A promise resolving to the callback result if successful.
    */
-  async run<T>(fn: () => Promise<T>): Promise<T> {
+  async run(fn: () => AsyncResult<void, AnyError>): Promise<void> {
     const tx = await this.client.begin()
     try {
       const result = await this._runWithRunner(tx, fn)
-      await tx.commit()
-      return result
+
+      if (result.ok) {
+        await tx.commit()
+      } else {
+        tx.rollback()
+      }
     } catch (e) {
       try {
         tx.rollback()

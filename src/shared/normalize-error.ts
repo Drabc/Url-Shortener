@@ -1,4 +1,4 @@
-import { BaseError, ErrorKind, ErrorKinds, SystemError } from './errors.js'
+import { BaseError, ErrorCategories, SystemError, ErrorCategory } from './errors.js'
 
 type OpenAPIValidationError = {
   type: string
@@ -22,8 +22,8 @@ export function toBaseError(err: unknown): BaseError {
 
   const e = err as OpenAPIValidationError
   if (typeof e.status === 'number') {
-    const { kind, type } = statusToKindType(e.status)
-    return new BaseError(kind, type, e.message, e.stack)
+    const { category, type } = statusToCategory(e.status)
+    return new BaseError(category, type, e.message, e.stack)
   }
   return new SystemError(e.message, e.stack)
 }
@@ -31,15 +31,16 @@ export function toBaseError(err: unknown): BaseError {
 /**
  * Map an HTTP status code to an application ErrorKind and canonical type string.
  * @param {number} status HTTP status code.
- * @returns {{ kind: ErrorKind, type: string }} Pair representing kind + type.
+ * @returns {{ category: ErrorCategory, type: string }} Pair representing category + type.
  */
-function statusToKindType(status: number): { kind: ErrorKind; type: string } {
-  if (status === 401) return { kind: ErrorKinds.auth, type: 'UNAUTHENTICATED' }
-  if (status === 403) return { kind: ErrorKinds.forbidden, type: 'FORBIDDEN' }
-  if (status === 404) return { kind: ErrorKinds.not_found, type: 'NOT_FOUND' }
-  if (status === 409) return { kind: ErrorKinds.conflict, type: 'CONFLICT' }
-  if (status === 429) return { kind: ErrorKinds.rate_limit, type: 'RATE_LIMIT' }
-  if (status >= 400 && status < 500) return { kind: ErrorKinds.validation, type: 'VALIDATION' }
-  if (status >= 500) return { kind: ErrorKinds.system, type: 'SYSTEM' }
-  return { kind: ErrorKinds.unknown, type: 'UNKNOWN' }
+function statusToCategory(status: number): { category: ErrorCategory; type: string } {
+  if (status === 401) return { category: ErrorCategories.unauthorized, type: 'UNAUTHENTICATED' }
+  if (status === 403) return { category: ErrorCategories.forbidden, type: 'FORBIDDEN' }
+  if (status === 404) return { category: ErrorCategories.not_found, type: 'NOT_FOUND' }
+  if (status === 409) return { category: ErrorCategories.conflict, type: 'CONFLICT' }
+  if (status === 429) return { category: ErrorCategories.rate_limited, type: 'RATE_LIMIT' }
+  if (status >= 400 && status < 500)
+    return { category: ErrorCategories.validation, type: 'VALIDATION' }
+  if (status >= 500) return { category: ErrorCategories.internal_error, type: 'SYSTEM' }
+  return { category: ErrorCategories.unknown, type: 'UNKNOWN' }
 }

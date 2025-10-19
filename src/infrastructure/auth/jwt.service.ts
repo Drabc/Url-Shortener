@@ -6,7 +6,9 @@ import { Logger } from 'pino'
 import { IJwtIssuer } from '@application/ports/jwt-issuer.js'
 import { Clock } from '@application/shared/clock.js'
 import { IJwtVerifier, VerifiedJwt } from '@application/ports/jwt-verifier.js'
-import { InvalidAccessToken } from '@application/errors/invalid-access-token.error.js'
+import { errorFactory } from '@shared/errors.js'
+import { AsyncResult, Err, Ok, Result } from '@shared/result.js'
+import { InvalidAccessToken } from '@application/errors/index.js'
 
 /**
  * Service responsible for issuing and verifying JSON Web Tokens (JWT).
@@ -59,37 +61,42 @@ export class JwtService implements IJwtIssuer, IJwtVerifier {
    * @param {string} jwt JSON Web Token string to verify.
    * @returns {Promise<VerifiedJwt | null>} Parsed and validated JWT payload or null if verification fails.
    */
-  async verify(jwt: string): Promise<VerifiedJwt | null> {
+  async verify(jwt: string): AsyncResult<VerifiedJwt | null, InvalidAccessToken> {
     try {
       const { payload } = await this.verifier(jwt, this.publicKey)
 
-      this.validateToken(payload)
-
-      return {
-        subject: payload.sub!,
-        issuer: payload.iss!,
-        audience: Array.isArray(payload.aud) ? payload.aud : [payload.aud!],
-        expiresAt: new Date(payload.exp!),
-        issuedAt: new Date(payload.iat!),
-        jti: payload.jti!,
-      }
+      return this.validateToken(payload).andThen(() => {
+        return Ok({
+          subject: payload.sub!,
+          issuer: payload.iss!,
+          audience: Array.isArray(payload.aud) ? payload.aud : [payload.aud!],
+          expiresAt: new Date(payload.exp!),
+          issuedAt: new Date(payload.iat!),
+          jti: payload.jti!,
+        })
+      })
     } catch (e: unknown) {
       this.logger.warn(e)
-      return null
+      const cause = e instanceof Error ? e.message : String(e)
+      return Err(errorFactory.app('InvalidAccessToken', 'unauthorized', { cause }))
     }
   }
 
   /**
    * Validates mandatory JWT payload claims.
    * @param {JWTPayload} payload JWT payload to validate.
-   * @throws {InvalidAccessToken} If any required claim is missing.
+   * @returns {Result<void, InvalidAccessToken>} when token is invalid
    */
-  private validateToken(payload: JWTPayload) {
-    if (!payload.sub) throw new InvalidAccessToken('No Subject')
-    if (!payload.iss) throw new InvalidAccessToken('No Issuer')
-    if (!payload.aud) throw new InvalidAccessToken('No Audience')
-    if (!payload.exp) throw new InvalidAccessToken('No Expiration')
-    if (!payload.iat) throw new InvalidAccessToken('No Issued At')
-    if (!payload.jti) throw new InvalidAccessToken('No Id')
+  private validateToken(payload: JWTPayload): Result<void, InvalidAccessToken> {
+    const errorResponse = (message: string) =>
+      Err(errorFactory.app('InvalidAccessToken', 'unauthorized', { message }))
+    if (!payload.sub) return errorResponse('No Subject')
+    if (!payload.iss) return errorResponse('No Issuer')
+    if (!payload.aud) return errorResponse('No Audience')
+    if (!payload.exp) return errorResponse('No Expiration')
+    if (!payload.iat) return errorResponse('No Issued At')
+    if (!payload.jti) return errorResponse('No Id')
+
+    return Ok(undefined)
   }
 }

@@ -13,14 +13,14 @@ export class PlainRefreshSecret {
    * @returns {PlainRefreshSecret} A new PlainRefreshSecret instance.
    */
   static fromBytes(value: Buffer): PlainRefreshSecret {
-    return new PlainRefreshSecret(value)
-  }
-
-  private constructor(public readonly value: Buffer) {
     if (value.length < MINIMUM_ENTROPY || value.length > MAXIMUM_ENTROPY) {
       throw new Error(
         `Refresh Secret must be between ${MINIMUM_ENTROPY} and ${MAXIMUM_ENTROPY} bytes`,
       )
     }
+
+    return new PlainRefreshSecret(value)
   }
+
+  private constructor(public readonly value: Buffer) {}
 }

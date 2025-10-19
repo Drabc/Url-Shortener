@@ -150,7 +150,8 @@ describe('PostgresSessionRepository', () => {
       // Second query for tokens
       pg.query.mockResolvedValueOnce({ rows: [] })
 
-      await expect(repo.save(session)).resolves.toBeUndefined()
+      const res = await repo.save(session)
+      expect(res.ok).toBe(true)
 
       expect(pg.query).toHaveBeenCalledTimes(2)
       const firstCall = pg.query.mock.calls[0]
@@ -187,7 +188,8 @@ describe('PostgresSessionRepository', () => {
       pg.query.mockResolvedValueOnce({ rows: [{ id: 'sess-existing', inserted: false }] })
       pg.query.mockResolvedValueOnce({ rows: [] })
 
-      await repo.save(session)
+      const res = await repo.save(session)
+      expect(res.ok).toBe(true)
 
       expect(pg.query).toHaveBeenCalledTimes(2)
       expect(pg.query.mock.calls[0][0]).toContain('on conflict (id) do update')

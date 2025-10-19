@@ -3,6 +3,8 @@ import { IUserRepository } from '@domain/repositories/user.repository.interface.
 import { UserDTO } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
 import { Clock } from '@application/shared/clock.js'
+import { AsyncResult } from '@shared/result.js'
+import { AnyError } from '@shared/errors.js'
 
 /**
  * Use case responsible for registering a new user.
@@ -20,19 +22,18 @@ export class RegisterUser {
   /**
    * Registers a new user: hashes the provided password, creates a User entity and persists it.
    * @param {UserDTO} data UserDTO with the new user's data
+   * @returns {AsyncResult<void, AnyError>} Error if Unable to save
    */
-  async exec(data: UserDTO): Promise<void> {
+  async exec(data: UserDTO): AsyncResult<void, AnyError> {
     const passwordHash = await this.hasher.hash(data.password)
 
-    const user = new User(
+    return User.create(
       data.id,
       data.firstName,
       data.lastName,
       data.email,
       passwordHash,
       this.clock.now(),
-    )
-
-    await this.repo.save(user)
+    ).andThenAsync((user) => this.repo.save(user))
   }
 }

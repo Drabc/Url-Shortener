@@ -1,5 +1,8 @@
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { ShortUrl } from '@domain/entities/short-url.js'
+import { AsyncResult, Ok } from '@shared/result.js'
+import { CodeError } from '@domain/errors/repository.error.js'
+import { InvalidUrl, InvalidValue } from '@domain/errors/index.js'
 
 /**
  * Repository selector that routes short URL operations based on authentication status.
@@ -17,15 +20,12 @@ export class ShortUrlRepositorySelector implements IShortUrlRepository {
    * @param {string} code - The unique code of the short URL to retrieve.
    * @returns {Promise<ShortUrl | null>} A promise that resolves to the ShortUrl entity or null if not found.
    */
-  async findByCode(code: string): Promise<ShortUrl | null> {
-    // Try Redis first (faster lookup for anonymous URLs)
-    const redisResult = await this.redisRepository.findByCode(code)
-    if (redisResult) {
-      return redisResult
-    }
+  async findByCode(code: string): AsyncResult<ShortUrl | null, InvalidValue | InvalidUrl> {
+    const redisRes = await this.redisRepository.findByCode(code)
 
-    // If not found in Redis, try Postgres (authenticated URLs)
-    return await this.postgresRepository.findByCode(code)
+    if (!redisRes.ok) return redisRes
+    if (redisRes.value) return Ok(redisRes.value)
+    return this.postgresRepository.findByCode(code)
   }
 
   /**
@@ -33,9 +33,9 @@ export class ShortUrlRepositorySelector implements IShortUrlRepository {
    * Anonymous URLs (userId = undefined) go to Redis with TTL.
    * Authenticated URLs (userId provided) go to Postgres permanently.
    * @param {ShortUrl} shortUrl - The ShortUrl entity to save.
-   * @returns {Promise<void>} A promise that resolves when the save operation is complete.
+   * @returns {AsyncResult<void, CodeError>} A promise that resolves when the save operation is complete.
    */
-  async save(shortUrl: ShortUrl): Promise<void> {
+  async save(shortUrl: ShortUrl): AsyncResult<void, CodeError> {
     if (shortUrl.userId === undefined) {
       // Anonymous URL - store in Redis with TTL
       return await this.redisRepository.save(shortUrl)

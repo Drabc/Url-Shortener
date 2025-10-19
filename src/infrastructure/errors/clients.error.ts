@@ -1,4 +1,4 @@
-import { BaseError, ErrorKinds } from '@shared/errors.js'
+import { BaseError, ErrorCategories } from '@shared/errors.js'
 
 /**
  * Thrown when a client fails to initialize/connect
@@ -9,7 +9,7 @@ import { BaseError, ErrorKinds } from '@shared/errors.js'
 export class ClientInitializationError extends BaseError {
   constructor(key: string, details?: string) {
     super(
-      ErrorKinds.system,
+      ErrorCategories.internal_error,
       'CLIENT_INIT_FAILURE',
       `Failed to initialize client '${key}' ${details ? `: ${details}` : ''}`,
     )
@@ -24,7 +24,11 @@ export class ClientInitializationError extends BaseError {
  */
 export class ClientNotRegisteredError extends BaseError {
   constructor(key: string) {
-    super(ErrorKinds.system, 'CLIENT_NOT_REGISTERED', `Client '${key}' has not been registered`)
+    super(
+      ErrorCategories.internal_error,
+      'CLIENT_NOT_REGISTERED',
+      `Client '${key}' has not been registered`,
+    )
     this.name = 'ClientNotRegisteredError'
   }
 }
@@ -36,7 +40,11 @@ export class ClientNotRegisteredError extends BaseError {
  */
 export class UnsupportedClientKeyError extends BaseError {
   constructor(key: string) {
-    super(ErrorKinds.system, 'UNSUPPORTED_CLIENT_KEY', `Unsupported client key '${key}'`)
+    super(
+      ErrorCategories.internal_error,
+      'UNSUPPORTED_CLIENT_KEY',
+      `Unsupported client key '${key}'`,
+    )
     this.name = 'UnsupportedClientKeyError'
   }
 }
@@ -49,7 +57,7 @@ export class UnsupportedClientKeyError extends BaseError {
 export class DuplicateClientRegistrationError extends BaseError {
   constructor(key: string) {
     super(
-      ErrorKinds.system,
+      ErrorCategories.internal_error,
       'DUPLICATE_CLIENT_REGISTRATION',
       `Client for key '${key}' is already registered`,
     )
@@ -66,7 +74,7 @@ export class DuplicateClientRegistrationError extends BaseError {
 export class ClientDisconnectError extends BaseError {
   constructor(key: string, details?: string) {
     super(
-      ErrorKinds.system,
+      ErrorCategories.internal_error,
       'CLIENT_DISCONNECT_FAILURE',
       `Failed to disconnect client '${key}' ${details ? `: ${details}` : ''}`,
     )

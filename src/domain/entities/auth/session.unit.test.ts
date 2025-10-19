@@ -1,11 +1,5 @@
 import { Session } from '@domain/entities/auth/session.js'
 import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
-import {
-  SessionNotActiveError,
-  NoActiveRefreshTokenError,
-  SessionExpiredError,
-  RefreshTokenReuseDetectedError,
-} from '@domain/errors/session.errors.js'
 import { Digest, ITokenDigester } from '@domain/utils/token-digester.js'
 import { PlainRefreshSecret } from '@domain/value-objects/plain-refresh-secret.js'
 
@@ -78,23 +72,6 @@ describe('Session', () => {
       expect(hydrated.userAgent).toBe(base.userAgent)
       expect(hydrated.endedAt?.toISOString()).toBe('2025-08-31T12:10:00.000Z')
       expect(hydrated.endReason).toBe('manual')
-    })
-  })
-
-  describe('touch()', () => {
-    it('updates lastUsedAt', () => {
-      const s = Session.start({
-        userId: base.userId,
-        clientId: base.clientId,
-        now: base.now,
-        ttlSec: base.ttlSec,
-        digest,
-        ip: base.ip,
-        userAgent: base.userAgent,
-      })
-      const later = new Date('2025-08-31T12:30:00.000Z')
-      s.touch(later)
-      expect(s.lastUsedAt?.toISOString()).toBe(later.toISOString())
     })
   })
 
@@ -172,7 +149,7 @@ describe('Session', () => {
       expect(s.status).toBe('active')
     })
 
-    it('throws SessionNotActiveError when session not active', () => {
+    it('returns domain error when session not active', () => {
       const active = makeToken()
       const s = Session.hydrate({
         id: 'sess-1',
@@ -186,12 +163,15 @@ describe('Session', () => {
         userAgent: base.userAgent,
       })
       const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
-      expect(() =>
-        s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), base.now),
-      ).toThrow(SessionNotActiveError)
+      const result = s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), base.now)
+      expect(result.ok).toBe(false)
+      const failure = result as Exclude<typeof result, { ok: true }>
+      expect(failure.error.kind).toBe('domain')
+      expect(failure.error.type).toBe('InvalidSession')
+      expect(failure.error.cause).toContain('not Active')
     })
 
-    it('throws NoActiveRefreshTokenError when no active token exists', () => {
+    it('returns domain error and revokes session when no active token exists', () => {
       const revoked = makeToken({ status: 'revoked', id: 'rt-x' })
       const s = Session.hydrate({
         id: 'sess-1',
@@ -205,15 +185,16 @@ describe('Session', () => {
         userAgent: base.userAgent,
       })
       const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
-      expect(() =>
-        s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), base.now),
-      ).toThrow(NoActiveRefreshTokenError)
+      const result = s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), base.now)
+      expect(result.ok).toBe(false)
+      const failure = result as Exclude<typeof result, { ok: true }>
+      expect(failure.error.cause).toContain('No active refresh token')
       expect(s.status).toBe('revoked')
       expect(s.endedAt).toBe(base.now)
       expect(s.endReason).toBeDefined()
     })
 
-    it('throws SessionExpiredError when session expired', () => {
+    it('returns domain error and marks session expired when session expired', () => {
       const active = makeToken()
       const expiresAt = new Date(base.now.getTime() + 1000)
       const s = Session.hydrate({
@@ -229,17 +210,17 @@ describe('Session', () => {
       })
       const afterExpiry = new Date(expiresAt.getTime() + 1)
       const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
-      expect(() =>
-        s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), afterExpiry),
-      ).toThrow(SessionExpiredError)
+      const result = s.rotateToken(Buffer.from('presented'), newDigest, verifier(true), afterExpiry)
+      expect(result.ok).toBe(false)
+      const failure = result as Exclude<typeof result, { ok: true }>
+      expect(failure.error.cause).toContain('Expired session')
       expect(active.status).toBe('revoked')
       expect(s.status).toBe('expired')
       expect(s.endedAt).toBe(afterExpiry)
       expect(s.endReason).toBeDefined()
     })
 
-    it(`throws RefreshTokenReuseDetectedError when the presented token hash does not
-        match the active hash`, () => {
+    it('returns domain error and marks reuse detected when the presented token hash does not match the active hash', () => {
       const active = makeToken()
       const s = Session.hydrate({
         id: 'sess-1',
@@ -253,9 +234,10 @@ describe('Session', () => {
         userAgent: base.userAgent,
       })
       const newDigest: Digest = { value: Buffer.from('new-hash'), algo: 'sha256' }
-      expect(() =>
-        s.rotateToken(Buffer.from('wrong'), newDigest, verifier(false), base.now),
-      ).toThrow(RefreshTokenReuseDetectedError)
+      const result = s.rotateToken(Buffer.from('wrong'), newDigest, verifier(false), base.now)
+      expect(result.ok).toBe(false)
+      const failure = result as Exclude<typeof result, { ok: true }>
+      expect(failure.error.cause).toContain('reuse')
       expect(active.status).toBe('reuse_detected')
       expect(s.status).toBe('reuse_detected')
       expect(s.endedAt).toBe(base.now)

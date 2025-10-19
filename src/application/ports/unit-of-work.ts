@@ -1,3 +1,6 @@
+import { AnyError } from '@shared/errors.js'
+import { AsyncResult } from '@shared/result.js'
+
 export interface IUnitOfWork {
-  run<T>(fn: () => Promise<T>): Promise<T>
+  run(fn: () => AsyncResult<void, AnyError>): Promise<void>
 }

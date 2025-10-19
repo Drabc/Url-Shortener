@@ -3,10 +3,10 @@ import { Redis } from 'ioredis'
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
-import {
-  CodeExistsError,
-  InvalidRepositoryOperationError,
-} from '@infrastructure/errors/repository.error.js'
+import { AsyncResult, Err, Ok } from '@shared/result.js'
+import { CodeError } from '@domain/errors/repository.error.js'
+import { errorFactory } from '@shared/errors.js'
+import { InvalidUrl, InvalidValue } from '@domain/errors/index.js'
 
 /**
  * Redis implementation of the URL repository interface for storing and retrieving short URLs.
@@ -27,31 +27,31 @@ export class RedisShortUrlRepository implements IShortUrlRepository {
    * @param {string} code - The unique code of the short URL to retrieve.
    * @returns {Promise<ShortUrl | null>} A promise that resolves to the ShortUrl entity or null if not found.
    */
-  async findByCode(code: string): Promise<ShortUrl | null> {
+  async findByCode(code: string): AsyncResult<ShortUrl | null, InvalidValue | InvalidUrl> {
     const url = await this.client.get(code)
-    if (!url) return null
-    // Anonymous URLs stored in Redis have no userId and are not persisted permanently
-    return new ShortUrl(code, code, new ValidUrl(url), undefined, false)
+    if (!url) return Ok(null)
+
+    return ValidUrl.create(url)
+      .andThen((validUrl) => ShortUrl.create(code, code, validUrl))
+      .andThen((mappedCode) => Ok(mappedCode))
   }
 
   /**
    * Saves a ShortUrl entity to the Redis database with 7-day TTL.
    * Only accepts anonymous URLs (userId must be undefined).
    * @param {ShortUrl} shortUrl - The ShortUrl entity to save.
-   * @returns {Promise<void>} A promise that resolves when the save operation is complete.
-   * @throws {CodeExistsError} Thrown if the short URL code already exists in the database.
-   * @throws {InvalidRepositoryOperationError} Thrown if attempting to save a user-owned URL (userId is not undefined).
+   * @returns {AsyncResult<void, CodeError>} Code Error when not able to save code.
    */
-  async save(shortUrl: ShortUrl): Promise<void> {
+  async save(shortUrl: ShortUrl): AsyncResult<void, CodeError> {
     if (shortUrl.userId !== undefined) {
-      throw new InvalidRepositoryOperationError(
-        'Redis repository only accepts anonymous URLs (userId must be undefined)',
+      return Err(
+        errorFactory.domain('UnableToSave', 'validation', {
+          message: 'Redis repository only accepts anonymous URLs (userId must be undefined)',
+        }),
       )
     }
 
     const response = await this.client.set(shortUrl.code, shortUrl.url, 'EX', this.ttlSeconds, 'NX')
-    if (!response) {
-      throw new CodeExistsError(`Short URL code "${shortUrl.code}" already exists.`)
-    }
+    return !response ? Err(errorFactory.domain('DuplicateCode', 'conflict')) : Ok(undefined)
   }
 }

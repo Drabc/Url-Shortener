@@ -37,11 +37,7 @@ export function createMeRouter(controller: ShortenerController, verifier: IJwtVe
    *            schema:
    *              $ref: '#/components/schemas/ErrorFormat'
    *      '401':
-   *        description: Unauthorized
-   *        content:
-   *          'application/json':
-   *            schema:
-   *              $ref: '#/components/schemas/ErrorFormat'
+   *        $ref: '#/components/responses/UnauthorizedError'
    *      '500':
    *        $ref: '#/components/responses/SystemError'
    */

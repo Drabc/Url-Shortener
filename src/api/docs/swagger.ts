@@ -67,6 +67,16 @@ export const swaggerSpec = swaggerJSDoc({
             },
           },
         },
+        UnauthorizedError: {
+          description: 'Unauthorized - Invalid or missing token',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorFormat',
+              },
+            },
+          },
+        },
       },
     },
   },

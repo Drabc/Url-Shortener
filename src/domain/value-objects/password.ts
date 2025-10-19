@@ -1,6 +1,6 @@
-import { PasswordTooLongError } from '@domain/errors/password-too-long.error.js'
-import { PasswordTooShortError } from '@domain/errors/password-too-short.error.js'
-import { PasswordTooWeakError } from '@domain/errors/password-too-weak.error.js'
+import { Ok, Err, Result } from '@shared/result.js'
+import { errorFactory } from '@shared/errors.js'
+import { InvalidPassword } from '@domain/errors/index.js'
 
 const MINIMUM_LENGTH = 8 as const
 const MAX_BYTES = 1024 as const //1kb
@@ -15,25 +15,36 @@ export class Password {
   constructor(public readonly value: string) {}
 
   /**
-   * Validates the provided plain password and returns a Password instance.
+   * Validates the provided plain password and returns a Result of Password.
    * Requires minimum length, max byte size, at least one uppercase and one symbol.
    * @param {string} plain The plain password to validate.
-   * @throws {Error} If validation fails.
-   * @returns {Password} A new Password value object.
+   * @returns {Result<Password, InvalidPassword>} Password or InvalidPassword
    */
-  public static create(plain: string) {
+  public static create(plain: string): Result<Password, InvalidPassword> {
     if (plain.length < MINIMUM_LENGTH) {
-      throw new PasswordTooShortError()
+      return Err(
+        errorFactory.domain('InvalidPassword', 'validation', {
+          message: 'Password is too short',
+        }),
+      )
     }
 
     if (new TextEncoder().encode(plain).length > MAX_BYTES) {
-      throw new PasswordTooLongError()
+      return Err(
+        errorFactory.domain('InvalidPassword', 'validation', {
+          message: 'Password too long',
+        }),
+      )
     }
 
     if (!STRENGTH_REGEXP.test(plain)) {
-      throw new PasswordTooWeakError()
+      return Err(
+        errorFactory.domain('InvalidPassword', 'validation', {
+          message: 'Password is too weak. Requires one uppercase and one symbol',
+        }),
+      )
     }
 
-    return new Password(plain)
+    return Ok(new Password(plain))
   }
 }

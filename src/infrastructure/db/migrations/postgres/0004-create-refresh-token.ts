@@ -23,7 +23,7 @@ export class CreateRefreshToken extends Migration<PgClient> {
           WHERE n.nspname = 'auth' AND t.typname = 'refresh_status'
         ) THEN
           CREATE TYPE auth.refresh_status AS ENUM (
-           'active', 'rotated', 'revoked', 'expired', 'reused_detected'
+           'active', 'rotated', 'revoked', 'expired', 'reuse_detected'
           );
         END IF;
       END$$;

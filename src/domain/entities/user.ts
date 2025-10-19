@@ -1,7 +1,9 @@
 import { requireNonEmpty } from '@domain/guards.js'
 import { BaseEntity } from '@domain/entities/base-entity.js'
 import { Email } from '@domain/value-objects/email.js'
-import { PasswordUpdateTimeError } from '@domain/errors/password-update-time.error.js'
+import { all, Err, Ok, Result } from '@shared/result.js'
+import { DomainValidationError, InvalidEmail } from '@domain/errors/index.js'
+import { errorFactory } from '@shared/errors.js'
 
 /**
  * Domain entity representing an application user.
@@ -13,23 +15,12 @@ import { PasswordUpdateTimeError } from '@domain/errors/password-update-time.err
  * @param {Date} passwordUpdatedAt Time of last password update.
  */
 export class User extends BaseEntity {
-  private _email: Email
-
   /**
    * Gets the user's first name.
    * @returns {string} First name.
    */
   get firstName(): string {
     return this._firstName
-  }
-
-  /**
-   * Sets the user's first name.
-   * @param {string} value Non-empty first name.
-   */
-  set firstName(value: string) {
-    requireNonEmpty(value)
-    this._firstName = value
   }
 
   /**
@@ -41,28 +32,11 @@ export class User extends BaseEntity {
   }
 
   /**
-   * Sets the user's last name.
-   * @param {string} value Non-empty last name.
-   */
-  set lastName(value: string) {
-    requireNonEmpty(value)
-    this._lastName = value
-  }
-
-  /**
    * Gets the user's email value object.
    * @returns {Email} Email.
    */
   get email(): Email {
     return this._email
-  }
-
-  /**
-   * Sets the user's email (string will be converted to Email VO).
-   * @param {Email|string} value Email value object or raw string.
-   */
-  set email(value: Email | string) {
-    this._email = typeof value === 'string' ? Email.create(value) : value
   }
 
   /**
@@ -81,33 +55,103 @@ export class User extends BaseEntity {
     return this._passwordUpdatedAt
   }
 
-  constructor(
+  /**
+   * Creates a new User entity after validating required fields.
+   * @param {string} id User identifier.
+   * @param {string} firstName First name (non-empty).
+   * @param {string} lastName Last name (non-empty).
+   * @param {string} email Email address (non-empty).
+   * @param {string} passwordHash Password hash (non-empty).
+   * @param {Date} now Current time used for passwordUpdatedAt.
+   * @returns {Result<User, DomainValidationError>} Result containing the User or validation error.
+   */
+  static create(
+    id: string,
+    firstName: string,
+    lastName: string,
+    email: string | Email,
+    passwordHash: string,
+    now: Date,
+  ): Result<User, DomainValidationError> {
+    return all(requireNonEmpty(firstName), requireNonEmpty(email), requireNonEmpty(passwordHash))
+      .andThen(() => (typeof email === 'string' ? Email.create(email) : Ok(email)))
+      .andThen((normalizedEmail) =>
+        Ok(new User(id, firstName, lastName, normalizedEmail, passwordHash, now)),
+      )
+  }
+
+  private constructor(
     id: string,
     private _firstName: string,
     private _lastName: string,
-    _email: Email | string,
+    private _email: Email,
     private _passwordHash: string,
     private _passwordUpdatedAt: Date,
   ) {
     super(id)
-    this._email = typeof _email === 'string' ? Email.create(_email) : _email
+  }
+
+  /**
+   * Updates the user's first name after non-empty validation.
+   * @param {string} value New first name.
+   * @returns {Result<void, DomainValidationError>} Err if value empty.
+   */
+  public updateFirstName(value: string): Result<void, DomainValidationError> {
+    return requireNonEmpty(value).andThen(() => {
+      this._firstName = value
+      return Ok(undefined)
+    })
+  }
+
+  /**
+   * Updates the user's last name after non-empty validation.
+   * @param {string} value New last name.
+   * @returns {Result<void, DomainValidationError>} Err if value empty.
+   */
+  public updateLastName(value: string): Result<void, DomainValidationError> {
+    return requireNonEmpty(value).andThen(() => {
+      this._lastName = value
+      return Ok(undefined)
+    })
+  }
+
+  /**
+   * Updates the user's email.
+   * @param {Email | string} value Email value object or raw string.
+   * @returns {Result<void, InvalidEmail>} Err if empty string.
+   */
+  public updateEmail(value: Email | string): Result<void, InvalidEmail> {
+    if (typeof value === 'string') {
+      const emailResult = Email.create(value).tap((email) => {
+        value = email
+      })
+
+      if (!emailResult.ok) return Err(errorFactory.domain('InvalidEmail', 'validation'))
+    }
+
+    this._email = value as Email
+
+    return Ok(undefined)
   }
 
   /**
    * Updates the user's password hash and records the update time.
    * @param {string} hash New password hash (must be non-empty).
    * @param {Date} now Date/time of the update (must be later than the current passwordUpdatedAt).
-   * @throws Error if the provided time is not later than the current passwordUpdatedAt.
+   * @returns {Result<void, DomainValidationError>} Validation error if any
    */
-  changePasswordHash(hash: string, now: Date) {
-    requireNonEmpty(hash)
-    requireNonEmpty(now)
-
-    if (this._passwordUpdatedAt && now <= this._passwordUpdatedAt) {
-      throw new PasswordUpdateTimeError()
-    }
-
-    this._passwordUpdatedAt = now
-    this._passwordHash = hash
+  changePasswordHash(hash: string, now: Date): Result<void, DomainValidationError> {
+    return all(requireNonEmpty(hash), requireNonEmpty(now)).andThen(() => {
+      if (this._passwordUpdatedAt && now <= this._passwordUpdatedAt) {
+        return Err(
+          errorFactory.domain('InvalidPasswordTime', 'internal_error', {
+            cause: 'New password update time must be later than the current one',
+          }),
+        )
+      }
+      this._passwordUpdatedAt = now
+      this._passwordHash = hash
+      return Ok(undefined)
+    })
   }
 }

@@ -1,4 +1,4 @@
-import { BaseError, ErrorKinds } from '@shared/errors.js'
+import { BaseError, ErrorCategories } from '@shared/errors.js'
 
 /**
  * Error thrown when authentication is required but missing or invalid.
@@ -6,7 +6,7 @@ import { BaseError, ErrorKinds } from '@shared/errors.js'
  */
 export class UnauthorizedError extends BaseError {
   constructor(message = 'Unauthorized') {
-    super(ErrorKinds.auth, 'UNAUTHORIZED', message)
+    super(ErrorCategories.unauthorized, 'UNAUTHORIZED', message)
     this.name = 'UnauthorizedError'
   }
 }
