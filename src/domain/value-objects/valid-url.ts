@@ -20,7 +20,7 @@ export class ValidUrl {
 
     if (!value) return errorResponse('Must Not Be Empty')
 
-    if (!value.startsWith('http')) errorResponse('Must Start With http or https')
+    if (!value.startsWith('http')) return errorResponse('Must Start With http or https')
 
     try {
       new URL(value)

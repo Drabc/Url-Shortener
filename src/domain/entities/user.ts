@@ -122,9 +122,11 @@ export class User extends BaseEntity {
    */
   public updateEmail(value: Email | string): Result<void, InvalidEmail> {
     if (typeof value === 'string') {
-      Email.create(value).tap((email) => {
+      const emailResult = Email.create(value).tap((email) => {
         value = email
       })
+
+      if (!emailResult.ok) return Err(errorFactory.domain('InvalidEmail', 'validation'))
     }
 
     this._email = value as Email

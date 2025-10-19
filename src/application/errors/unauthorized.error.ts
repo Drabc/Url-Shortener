@@ -6,7 +6,7 @@ import { BaseError, ErrorCategories } from '@shared/errors.js'
  */
 export class UnauthorizedError extends BaseError {
   constructor(message = 'Unauthorized') {
-    super(ErrorCategories.auth, 'UNAUTHORIZED', message)
+    super(ErrorCategories.unauthorized, 'UNAUTHORIZED', message)
     this.name = 'UnauthorizedError'
   }
 }
