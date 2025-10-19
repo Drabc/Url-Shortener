@@ -1,3 +1,3 @@
-import { BaseErrorV2 } from '@shared/errors.js'
+import { BaseResultError } from '@shared/errors.js'
 
-export type BaseInfrastructureError<T extends string> = BaseErrorV2<'infra', T>
+export type BaseInfrastructureError<T extends string> = BaseResultError<'infra', T>

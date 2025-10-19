@@ -1,43 +1,44 @@
 import { ApplicationError } from '@application/errors/index.js'
 import { DomainError } from '@domain/errors/index.js'
+import { InfrastructureError } from '@infrastructure/errors/index.js'
 
-export type ErrorKind =
-  | 'domain'
-  | 'application'
-  | 'infra'
+export type ErrorKind = 'domain' | 'application' | 'infra'
+
+export type ErrorCategory =
   | 'validation'
-  | 'conflict'
-  | 'system'
   | 'not_found'
-  | 'auth'
+  | 'duplicate'
+  | 'conflict'
   | 'forbidden'
-  | 'rate_limit'
+  | 'unauthorized'
+  | 'rate_limited'
+  | 'unavailable'
+  | 'internal_error'
   | 'unknown'
 
-export const ErrorKinds: Record<ErrorKind, ErrorKind> = {
+export const ErrorCategories: Record<ErrorCategory, ErrorCategory> = {
   validation: 'validation',
   conflict: 'conflict',
-  domain: 'domain',
-  system: 'system',
+  internal_error: 'internal_error',
   not_found: 'not_found',
-  auth: 'auth',
+  unauthorized: 'unauthorized',
   forbidden: 'forbidden',
-  rate_limit: 'rate_limit',
+  rate_limited: 'rate_limited',
   unknown: 'unknown',
-  application: 'application',
-  infra: 'infra',
+  duplicate: 'duplicate',
+  unavailable: 'unavailable',
 } as const
 
 /**
  * BaseError is the abstract base class for all custom application errors.
- * @param {ErrorKind} kind The generic app error kind.
+ * @param {ErrorCategory} category The error category.
  * @param {string} type A machine readable error type.
  * @param {string} [message] Optimal message describing the error.
  * @augments {Error}
  */
 export class BaseError extends Error {
   constructor(
-    public readonly kind: ErrorKind,
+    public readonly category: ErrorCategory,
     public readonly type: string,
     message?: string,
     public readonly internalMessage?: string,
@@ -54,33 +55,54 @@ export class BaseError extends Error {
  */
 export class SystemError extends BaseError {
   constructor(message?: string, stack?: string) {
-    super(ErrorKinds.system, 'SYSTEM', message, stack)
+    super(ErrorCategories.internal_error, 'INTERNAL_ERROR', message, stack)
   }
 }
 
-export interface BaseErrorV2<K extends ErrorKind, T extends string> {
+export interface BaseResultError<K extends ErrorKind, T extends string> {
   kind: K
   type: T
+  category: ErrorCategory
   message?: string
   cause?: string
 }
 
-export type AnyError = DomainError | ApplicationError
+export type AnyError = DomainError | ApplicationError | InfrastructureError
+
+type ErrorDetail = { message?: string; cause?: string }
 
 export const errorFactory = {
-  domain: <T extends string>(type: T, cause?: string): BaseErrorV2<'domain', T> => ({
+  domain: <T extends string>(
+    type: T,
+    category: ErrorCategory,
+    details?: ErrorDetail,
+  ): BaseResultError<'domain', T> => ({
     kind: 'domain',
     type,
-    cause,
+    category,
+    cause: details?.cause,
+    message: details?.message,
   }),
-  app: <T extends string>(type: T, cause?: string): BaseErrorV2<'application', T> => ({
+  app: <T extends string>(
+    type: T,
+    category: ErrorCategory,
+    details?: ErrorDetail,
+  ): BaseResultError<'application', T> => ({
     kind: 'application',
     type,
-    cause,
+    category,
+    cause: details?.cause,
+    message: details?.message,
   }),
-  infra: <T extends string>(type: T, cause?: string): BaseErrorV2<'infra', T> => ({
+  infra: <T extends string>(
+    type: T,
+    category: ErrorCategory,
+    details?: ErrorDetail,
+  ): BaseResultError<'infra', T> => ({
     kind: 'infra',
     type,
-    cause,
+    category,
+    cause: details?.cause,
+    message: details?.message,
   }),
 }

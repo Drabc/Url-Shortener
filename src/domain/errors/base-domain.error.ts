@@ -1,3 +1,3 @@
-import { BaseErrorV2 } from '@shared/errors.js'
+import { BaseResultError } from '@shared/errors.js'
 
-export type BaseDomainError<T extends string> = BaseErrorV2<'domain', T>
+export type BaseDomainError<T extends string> = BaseResultError<'domain', T>
