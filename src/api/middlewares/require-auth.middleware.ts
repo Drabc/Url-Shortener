@@ -2,6 +2,9 @@ import { NextFunction, Request, Response, RequestHandler } from 'express'
 
 import { IJwtVerifier } from '@application/ports/jwt-verifier.js'
 import { UnauthorizedError } from '@application/errors/unauthorized.error.js'
+import { respond } from '@api/utils/respond.js'
+import { errorFactory } from '@shared/errors.js'
+import { Err } from '@shared/result.js'
 
 declare module 'express' {
   interface Request {
@@ -17,19 +20,21 @@ declare module 'express' {
  * @returns {RequestHandler} Express middleware.
  */
 export function requireAuth(verifier: IJwtVerifier): RequestHandler {
-  return async (req: Request, _res: Response, next: NextFunction) => {
-    const unauthorized = () => next(new UnauthorizedError())
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const unauthorized = () =>
+      respond(res, Err(errorFactory.app('InvalidAccessToken', 'unauthorized')))
     try {
       const header = req.header('authorization') || req.header('Authorization')
       if (!header || !header.toLowerCase().startsWith('bearer ')) return unauthorized()
       const token = header.slice(7).trim()
       if (!token) return unauthorized()
       const verified = await verifier.verify(token)
-      if (!verified) return unauthorized()
-      req.userId = verified.subject
+      if (!verified.ok || !verified.value) return unauthorized()
+      req.userId = verified.value.subject
       return next()
-    } catch {
-      return unauthorized()
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      return next(new UnauthorizedError(message))
     }
   }
 }

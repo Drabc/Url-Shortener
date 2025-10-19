@@ -1,4 +1,4 @@
-import { CookieOptions, NextFunction, Request, Response } from 'express'
+import { CookieOptions, Request, Response } from 'express'
 
 import { FingerPrint, UserDTO } from '@application/dtos.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
@@ -6,6 +6,9 @@ import { LoginUser } from '@application/use-cases/login-user.use-case.js'
 import { LogoutUser } from '@application/use-cases/logout-user.use-case.js'
 import { RefreshToken } from '@application/use-cases/refresh-token.use-case.js'
 import { CookieFormatter } from '@api/utils/cookie-formatter.js'
+import { respond } from '@api/utils/respond.js'
+import { AsyncResult, Err } from '@shared/result.js'
+import { AnyError, errorFactory } from '@shared/errors.js'
 
 const REFRESH_TOKEN_COOKIE_NAME = 'refresh-token' as const
 
@@ -31,30 +34,22 @@ export class AuthController {
    * Registers a new user.
    * @param {Request} req Express request containing the user data (UserDTO) in the body.
    * @param {Response} res Express response used to send the creation status.
-   * @param {NextFunction} next next handler
    * @returns {Promise<void>} Promise that resolves when the user registration process is initiated.
    */
-  async register(
-    req: Request<unknown, void, UserDTO>,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  async register(req: Request<unknown, void, UserDTO>, res: Response): Promise<void> {
     const userDto = req.body
     const result = await this.registerUser.exec(userDto)
 
-    if (!result.ok) return next(result.error)
-
-    res.status(201).send()
+    respond(res, result, () => res.status(201).send())
   }
 
   /**
    * Authenticates a user and issues access/refresh tokens.
    * @param {Request} req Express request containing the user credentials (email, password) in the body.
    * @param {Response} res Express response used to return the access token and set the refresh token cookie.
-   * @param {NextFunction} next next handler
-   * @returns {Promise<void>} Promise that resolves after the authentication process completes.
+   * @returns {AsyncResult<void, AnyError>} Promise that resolves after the authentication process completes.
    */
-  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async login(req: Request, res: Response): AsyncResult<void, AnyError> {
     const { email, password } = req.body
     const fp = this.createFingerPrint(req)
 
@@ -62,25 +57,21 @@ export class AuthController {
     const presentedRefreshHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presentedRefreshToken = this.cookieFormatter.safeDecodeRefreshToken(presentedRefreshHex)
 
-    const result = await this.loginUser.exec(email, password, fp, presentedRefreshToken)
+    const loginResult = await this.loginUser.exec(email, password, fp, presentedRefreshToken)
 
-    if (!result.ok) return next(result.error)
-
-    const { accessToken, refreshToken, expirationDate } = result.value
-
-    this.createRefreshTokenCookie(res, refreshToken, expirationDate)
-    // TODO: Add metadata type (Bearer), expiration time
-    res.status(200).json({ accessToken })
+    return respond(res, loginResult, ({ accessToken, refreshToken, expirationDate }) => {
+      this.createRefreshTokenCookie(res, refreshToken, expirationDate)
+      res.status(200).json({ accessToken })
+    })
   }
 
   /**
    * Logs out the current user session.
    * @param {Request} req Express request containing user ID from authentication middleware.
    * @param {Response} res Express response used to confirm logout and clear cookies.
-   * @param {NextFunction} next next handler
    * @returns {Promise<void>} Promise that resolves after the logout process completes.
    */
-  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async logout(req: Request, res: Response): Promise<void> {
     const userId = req.userId!
     const fp = this.createFingerPrint(req)
 
@@ -88,63 +79,55 @@ export class AuthController {
     const presentedRefreshHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presentedRefreshToken = this.cookieFormatter.safeDecodeRefreshToken(presentedRefreshHex)
 
-    const result = await this.logoutUser.logoutSession(userId, fp, presentedRefreshToken)
-    if (!result.ok) return next(result.error)
-
-    // Clear the refresh token cookie
-    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
-
-    res.status(200).json({ message: 'Logged out successfully' })
+    respond(res, await this.logoutUser.logoutSession(userId, fp, presentedRefreshToken), () => {
+      // Clear the refresh token cookie
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
+      res.status(200).json({ message: 'Logged out successfully' })
+    })
   }
 
   /**
    * Logs out all user sessions globally.
    * @param {Request} req Express request containing user ID from authentication middleware.
    * @param {Response} res Express response used to confirm global logout.
-   * @param {NextFunction} next next handler
-   * @returns {Promise<void>} Promise that resolves after all sessions are revoked.
+   * @returns {AsyncResult<void, AnyError>} Promise that resolves after all sessions are revoked.
    */
-  async logoutAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async logoutAll(req: Request, res: Response): AsyncResult<void, AnyError> {
     const userId = req.userId
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' })
-      return
+      return Err(errorFactory.app('InvalidAccessToken', 'unauthorized'))
     }
 
-    const result = await this.logoutUser.logoutAllSessions(userId)
-    if (!result.ok) return next(result.error)
-
-    // Clear the refresh token cookie on this device too
-    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
-
-    res.status(200).json({ message: 'Logged out from all devices successfully' })
+    return respond(res, await this.logoutUser.logoutAllSessions(userId), () => {
+      // Clear the refresh token cookie on this device too
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
+      res.status(200).json({ message: 'Logged out from all devices successfully' })
+    })
   }
 
   /**
    * Rotates a valid refresh token and returns a new access token. Requires existing refresh token cookie.
    * @param {Request} req Express request containing userId (access token may still be valid or near expiry).
    * @param {Response} res Express response setting new refresh cookie and returning new access token.
-   * @param {NextFunction} next next handler
-   * @returns {Promise<void>}
+   * @returns {AsyncResult<void, AnyError>} Request success or Error
    */
-  async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async refresh(req: Request, res: Response): AsyncResult<void, AnyError> {
     const fp = this.createFingerPrint(req)
     const presentedHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presented = this.cookieFormatter.safeDecodeRefreshToken(presentedHex)
     if (!presented) {
       res.status(401).json({ error: 'Invalid token' })
-      return
+      return Err(errorFactory.app('InvalidAccessToken', 'unauthorized'))
     }
 
     const result = await this.refreshToken.exec(fp, presented)
 
-    if (!result.ok) return next(result.error)
-
-    const { accessToken, refreshToken, expirationDate } = result.value!
-
-    this.createRefreshTokenCookie(res, refreshToken, expirationDate)
-
-    res.status(200).json({ accessToken })
+    return respond(res, result, (loginResult) => {
+      const { refreshToken, accessToken, expirationDate } = loginResult
+      this.createRefreshTokenCookie(res, refreshToken, expirationDate)
+      res.status(200).json({ accessToken })
+    })
   }
 
   /**
