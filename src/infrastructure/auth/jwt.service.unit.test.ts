@@ -2,7 +2,6 @@ import type { CryptoKey, JWTPayload } from 'jose'
 import { Logger } from 'pino'
 
 import { JwtService } from '@infrastructure/auth/jwt.service.js'
-import { InvalidAccessToken } from '@application/errors/invalid-access-token.error.js'
 
 type Header = { alg: string }
 
@@ -139,7 +138,9 @@ describe('JwtService', () => {
   })
 
   describe('verify', () => {
-    it('returns mapped claims when verification succeeds', async () => {
+    type Success<T> = Extract<T, { ok: true }>
+    type Failure<T> = Extract<T, { ok: false }>
+    it('returns Ok with mapped claims when verification succeeds', async () => {
       const payload: JWTPayload = {
         sub: 'user-1',
         iss: issuer,
@@ -148,11 +149,11 @@ describe('JwtService', () => {
         iat: clock.now().getTime(),
         jti: '12345678-1234-1234-1234-123456789012',
       }
-
       verifier.mockResolvedValue({ payload })
-      const result = await jwtService.verify('token')
-
-      expect(result).toEqual({
+      const res = await jwtService.verify('token')
+      const okRes: Success<typeof res> = res as Success<typeof res>
+      expect(okRes.ok).toBe(true)
+      expect(okRes.value).toEqual({
         subject: 'user-1',
         issuer,
         audience: [audience],
@@ -162,16 +163,16 @@ describe('JwtService', () => {
       })
     })
 
-    it('returns null and logs on verifier error', async () => {
+    it('returns Err InvalidAccessToken and logs on verifier error', async () => {
       verifier.mockRejectedValue(new Error('boom'))
-
-      const result = await jwtService.verify('bad')
-
-      expect(result).toBeNull()
+      const res = await jwtService.verify('bad')
+      const errRes: Failure<typeof res> = res as Failure<typeof res>
+      expect(errRes.ok).toBe(false)
+      expect(errRes.error.type).toBe('InvalidAccessToken')
       expect(logger.warn).toHaveBeenCalled()
     })
 
-    it('returns null when required claim missing (sub)', async () => {
+    it('returns Err when required claim missing (sub)', async () => {
       const payload: JWTPayload = {
         iss: issuer,
         aud: audience,
@@ -180,15 +181,11 @@ describe('JwtService', () => {
         jti: '12345678-1234-1234-1234-123456789012',
       }
       verifier.mockResolvedValue({ payload })
-
-      const result = await jwtService.verify('token')
-
-      expect(result).toBeNull()
-      expect(logger.warn).toHaveBeenCalled()
-      const warnedWithInvalid = logger.warn.mock.calls.some(
-        (c: unknown[]) => c[0] instanceof InvalidAccessToken,
-      )
-      expect(warnedWithInvalid).toBe(true)
+      const res = await jwtService.verify('token')
+      const errRes: Failure<typeof res> = res as Failure<typeof res>
+      expect(errRes.ok).toBe(false)
+      expect(errRes.error.type).toBe('InvalidAccessToken')
+      expect(logger.warn).not.toHaveBeenCalled()
     })
   })
 })

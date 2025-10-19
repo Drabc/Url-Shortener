@@ -6,6 +6,8 @@ import {
   PgTransactionCommitError,
 } from '@infrastructure/errors/pg-client.error.js'
 
+type Failure<T> = Exclude<T, { ok: true }>
+
 describe('PgClient', () => {
   let pool: { query: jest.Mock; connect: jest.Mock }
   let client: PgClient
@@ -43,9 +45,9 @@ describe('PgClient', () => {
       pool.query.mockResolvedValue({ rowCount: 0 })
       const res = await client.insert('INSERT', ['a'])
       expect(res.ok).toBe(false)
-      if (res.ok) throw new Error('expected failure result')
-      expect(res.error.kind).toBe('infra')
-      expect(res.error.type).toBe('UniqueViolation')
+      const failure = res as Failure<typeof res>
+      expect(failure.error.kind).toBe('infra')
+      expect(failure.error.type).toBe('UniqueViolation')
     })
 
     it('returns infra UniqueViolation on unique violation code', async () => {
@@ -53,9 +55,9 @@ describe('PgClient', () => {
       pool.query.mockRejectedValue(error)
       const res = await client.insert('INSERT', ['a'])
       expect(res.ok).toBe(false)
-      if (res.ok) throw new Error('expected failure result')
-      expect(res.error.kind).toBe('infra')
-      expect(res.error.type).toBe('UniqueViolation')
+      const failure = res as Failure<typeof res>
+      expect(failure.error.kind).toBe('infra')
+      expect(failure.error.type).toBe('UniqueViolation')
     })
 
     it('returns UnableToInsert on other errors', async () => {
@@ -63,9 +65,9 @@ describe('PgClient', () => {
       pool.query.mockRejectedValue(error)
       const res = await client.insert('INSERT', ['a'])
       expect(res.ok).toBe(false)
-      if (res.ok) throw new Error('expected failure result')
-      expect(res.error.kind).toBe('infra')
-      expect(res.error.type).toBe('UnableToInsert')
+      const failure = res as Failure<typeof res>
+      expect(failure.error.kind).toBe('infra')
+      expect(failure.error.type).toBe('UnableToInsert')
     })
   })
 

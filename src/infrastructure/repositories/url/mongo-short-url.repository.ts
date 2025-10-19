@@ -6,6 +6,7 @@ import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { errorFactory } from '@shared/errors.js'
 import { CodeError } from '@domain/errors/repository.error.js'
+import { InvalidUrl, InvalidValue } from '@domain/errors/index.js'
 
 export type MongoShortUrl = {
   _id?: ObjectId
@@ -34,22 +35,13 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
    * @param {string} code - The unique code of the short URL.
    * @returns {Promise<ShortUrl | null>} The found ShortUrl entity or null if not found.
    */
-  async findByCode(code: string): Promise<ShortUrl | null> {
-    const result = await this.collection.findOne<MongoShortUrl>({
-      code,
-    })
+  async findByCode(code: string): AsyncResult<ShortUrl | null, InvalidValue | InvalidUrl> {
+    const doc = await this.collection.findOne<MongoShortUrl>({ code })
+    if (!doc) return Ok(null)
 
-    if (!result) {
-      return null
-    }
-
-    return new ShortUrl(
-      result._id!.toString(),
-      result.code,
-      new ValidUrl(result.originalUrl),
-      result.userId,
-      false,
-    )
+    return ValidUrl.create(doc.originalUrl)
+      .andThen((validUrl) => ShortUrl.create(doc._id!.toString(), code, validUrl, doc.userId))
+      .andThen((mappedCode) => Ok(mappedCode))
   }
 
   /**
@@ -60,7 +52,7 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
    */
   async save(entity: ShortUrl): AsyncResult<void, CodeError> {
     if (!entity.isNew()) {
-      return Err(errorFactory.domain('ImmutableCode'))
+      return Err(errorFactory.domain('ImmutableCode', 'validation'))
     }
 
     const code = {
@@ -78,9 +70,9 @@ export class MongoShortUrlRepository implements IShortUrlRepository {
     } catch (err) {
       const e = err as MongoServerError
       if (e.code === 11000) {
-        return Err(errorFactory.domain('DuplicateCode'))
+        return Err(errorFactory.domain('DuplicateCode', 'conflict'))
       }
-      return Err(errorFactory.domain('UnableToSave'))
+      return Err(errorFactory.domain('UnableToSave', 'internal_error'))
     }
   }
 }

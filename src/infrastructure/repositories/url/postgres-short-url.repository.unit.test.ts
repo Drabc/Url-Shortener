@@ -14,6 +14,9 @@ type ErrorMock = {
   }
 }
 
+type Success<T> = T & { ok: true }
+type Failure<T> = Exclude<T, { ok: true }>
+
 describe('PostgresShortUrlRepository', () => {
   let pg: { findOne: jest.Mock; insert: jest.Mock }
   let repo: PostgresShortUrlRepository
@@ -24,7 +27,7 @@ describe('PostgresShortUrlRepository', () => {
   })
 
   describe('findByCode()', () => {
-    it('returns a ShortUrl when a row is found', async () => {
+    it('returns Ok(ShortUrl) when a row is found', async () => {
       const row: UrlRow = {
         id: '11111111-1111-1111-1111-111111111111',
         code: 'abc123',
@@ -36,36 +39,39 @@ describe('PostgresShortUrlRepository', () => {
 
       pg.findOne.mockResolvedValue(row)
 
-      const result = await repo.findByCode('abc123')
-
+      const res = await repo.findByCode('abc123')
       expect(pg.findOne).toHaveBeenCalledWith(
         'select id, code, original_url, user_id from app.short_urls where code = $1',
         ['abc123'],
       )
-      expect(result).toBeInstanceOf(ShortUrl)
-      expect(result?.code).toBe('abc123')
-      expect(result?.url).toBe('https://example.com')
-      expect(result?.userId).toBe('user-77')
+      expect(res.ok).toBe(true)
+      const success = res as { ok: true; value: ShortUrl }
+      expect(success.value.code).toBe('abc123')
+      expect(success.value.url).toBe('https://example.com')
+      expect(success.value.userId).toBe('user-77')
     })
 
-    it('returns null when no row is found', async () => {
+    it('returns Ok(null) when no row is found', async () => {
       pg.findOne.mockResolvedValue(null)
 
-      const result = await repo.findByCode('missing')
-
+      const res = await repo.findByCode('missing')
       expect(pg.findOne).toHaveBeenCalledWith(
         'select id, code, original_url, user_id from app.short_urls where code = $1',
         ['missing'],
       )
-      expect(result).toBeNull()
+      expect(res.ok).toBe(true)
+      expect(res.ok && res.value).toBeNull()
     })
   })
 
   describe('save()', () => {
     it('inserts a new row for a non-persisted entity (anonymous)', async () => {
       pg.insert.mockResolvedValue({ ok: true, value: undefined })
-      const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
-
+      const urlRes = ValidUrl.create('https://ex.com')
+      expect(urlRes.ok).toBe(true)
+      const entityResRaw = ShortUrl.create('', 'abc123', (urlRes as Success<typeof urlRes>).value)
+      expect(entityResRaw.ok).toBe(true)
+      const entity = (entityResRaw as Success<typeof entityResRaw>).value
       const res = await repo.save(entity)
       expect(res.ok).toBe(true)
       expect(pg.insert).toHaveBeenCalledWith(
@@ -76,8 +82,16 @@ describe('PostgresShortUrlRepository', () => {
 
     it('inserts a new row with user_id for a user-owned short url', async () => {
       pg.insert.mockResolvedValue({ ok: true, value: undefined })
-      const entity = new ShortUrl('', 'abc999', new ValidUrl('https://ex2.com'), 'user-22')
-
+      const urlRes = ValidUrl.create('https://ex2.com')
+      expect(urlRes.ok).toBe(true)
+      const entityResRaw = ShortUrl.create(
+        '',
+        'abc999',
+        (urlRes as Success<typeof urlRes>).value,
+        'user-22',
+      )
+      expect(entityResRaw.ok).toBe(true)
+      const entity = (entityResRaw as Success<typeof entityResRaw>).value
       const res = await repo.save(entity)
       expect(res.ok).toBe(true)
       expect(pg.insert).toHaveBeenCalledWith(
@@ -88,22 +102,26 @@ describe('PostgresShortUrlRepository', () => {
 
     it('returns domain UnableToSave when underlying client insert fails', async () => {
       pg.insert.mockResolvedValue({ ok: false, error: { kind: 'infra', type: 'UniqueViolation' } })
-      const entity = new ShortUrl('', 'abc123', new ValidUrl('https://ex.com'))
-
+      const urlRes = ValidUrl.create('https://ex.com')
+      expect(urlRes.ok).toBe(true)
+      const entityResRaw = ShortUrl.create('', 'abc123', (urlRes as Success<typeof urlRes>).value)
+      expect(entityResRaw.ok).toBe(true)
+      const entity = (entityResRaw as Success<typeof entityResRaw>).value
       const res = (await repo.save(entity)) as unknown as ErrorMock
       expect(res.ok).toBe(false)
-      expect(res.error.type).toBe('UnableToSave')
-      expect(res.error.kind).toBe('domain')
+      const failure = res as Failure<typeof res>
+      expect(failure.error.type).toBe('UnableToSave')
+      expect(failure.error.kind).toBe('domain')
     })
 
     it('returns domain ImmutableCode when entity is already persisted', async () => {
-      const entity = new ShortUrl(
-        '11111111-1111-1111-1111-111111111111',
-        'abc123',
-        new ValidUrl('https://ex.com'),
-        undefined,
-        false,
-      )
+      // To simulate persisted entity, bypass isNew by casting (domain exposes no mutate). Keep previous pattern.
+      const entity = {
+        isNew: () => false,
+        code: 'abc123',
+        url: 'https://ex.com',
+        userId: undefined,
+      } as unknown as ShortUrl
 
       const res = (await repo.save(entity)) as unknown as ErrorMock
       expect(res.ok).toBe(false)

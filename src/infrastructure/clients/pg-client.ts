@@ -58,16 +58,18 @@ export class PgClient {
       const result = await this.pool.query(query, values)
 
       if (result.rowCount === 0) {
-        return Err(errorFactory.infra('UniqueViolation'))
+        return Err(errorFactory.infra('UniqueViolation', 'duplicate'))
       }
     } catch (err) {
       const e = err as { code?: string; detail?: string }
 
       if (e.code === PG_ERROR.UNIQUE) {
-        return Err(errorFactory.infra('UniqueViolation'))
+        return Err(errorFactory.infra('UniqueViolation', 'duplicate'))
       }
 
-      return Err(errorFactory.infra('UnableToInsert', e.detail ?? String(err)))
+      return Err(
+        errorFactory.infra('UnableToInsert', 'unknown', { cause: e.detail ?? String(err) }),
+      )
     }
     return Ok(undefined)
   }

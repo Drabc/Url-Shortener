@@ -5,12 +5,13 @@ import { PgClient } from '@infrastructure/clients/pg-client.js'
 import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { errorFactory } from '@shared/errors.js'
 import { CodeError } from '@domain/errors/repository.error.js'
+import { InvalidUrl, InvalidValue } from '@domain/errors/index.js'
 
 export type UrlRow = {
   id: string
   code: string
   original_url: string
-  user_id: string | null
+  user_id: string | undefined
   created_at: Date
   updated_at: Date
 }
@@ -31,22 +32,16 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
   /**
    * Finds a ShortUrl entity by its unique identifier.
    * @param {string} code - the unique code of the short url
-   * @returns {Promise<ShortUrl | null>} entity or null if not found
+   * @returns {AsyncResult<ShortUrl | null, InvalidValue | InvalidUrl>} entity or null if not found
    */
-  async findByCode(code: string): Promise<ShortUrl | null> {
+  async findByCode(code: string): AsyncResult<ShortUrl | null, InvalidValue | InvalidUrl> {
     const query = 'select id, code, original_url, user_id from app.short_urls where code = $1'
     const row = await this.client.findOne<UrlRow>(query, [code])
+    if (!row) return Ok(null)
 
-    if (!row) {
-      return null
-    }
-    return new ShortUrl(
-      row.id,
-      row.code,
-      new ValidUrl(row.original_url),
-      row.user_id ?? undefined,
-      false,
-    )
+    return ValidUrl.create(row.original_url)
+      .andThen((validUrl) => ShortUrl.create(row.id, row.code, validUrl, row.user_id))
+      .andThen((shortCode) => Ok(shortCode))
   }
 
   /**
@@ -57,7 +52,7 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
    */
   async save(code: ShortUrl): AsyncResult<void, CodeError> {
     if (!code.isNew()) {
-      return Err(errorFactory.domain('ImmutableCode'))
+      return Err(errorFactory.domain('ImmutableCode', 'validation'))
     }
 
     const sql =
@@ -65,6 +60,6 @@ export class PostgresShortUrlRepository implements IShortUrlRepository {
 
     const result = await this.client.insert(sql, [code.code, code.url, code.userId ?? null])
 
-    return result.ok ? Ok(undefined) : Err(errorFactory.domain('UnableToSave'))
+    return result.ok ? Ok(undefined) : Err(errorFactory.domain('UnableToSave', 'internal_error'))
   }
 }

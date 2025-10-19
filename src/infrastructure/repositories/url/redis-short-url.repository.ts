@@ -6,6 +6,7 @@ import { IShortUrlRepository } from '@domain/repositories/short-url.repository.i
 import { AsyncResult, Err, Ok } from '@shared/result.js'
 import { CodeError } from '@domain/errors/repository.error.js'
 import { errorFactory } from '@shared/errors.js'
+import { InvalidUrl, InvalidValue } from '@domain/errors/index.js'
 
 /**
  * Redis implementation of the URL repository interface for storing and retrieving short URLs.
@@ -26,11 +27,13 @@ export class RedisShortUrlRepository implements IShortUrlRepository {
    * @param {string} code - The unique code of the short URL to retrieve.
    * @returns {Promise<ShortUrl | null>} A promise that resolves to the ShortUrl entity or null if not found.
    */
-  async findByCode(code: string): Promise<ShortUrl | null> {
+  async findByCode(code: string): AsyncResult<ShortUrl | null, InvalidValue | InvalidUrl> {
     const url = await this.client.get(code)
-    if (!url) return null
-    // Anonymous URLs stored in Redis have no userId and are not persisted permanently
-    return new ShortUrl(code, code, new ValidUrl(url), undefined, false)
+    if (!url) return Ok(null)
+
+    return ValidUrl.create(url)
+      .andThen((validUrl) => ShortUrl.create(code, code, validUrl))
+      .andThen((mappedCode) => Ok(mappedCode))
   }
 
   /**
@@ -42,14 +45,13 @@ export class RedisShortUrlRepository implements IShortUrlRepository {
   async save(shortUrl: ShortUrl): AsyncResult<void, CodeError> {
     if (shortUrl.userId !== undefined) {
       return Err(
-        errorFactory.domain(
-          'UnableToSave',
-          'Redis repository only accepts anonymous URLs (userId must be undefined)',
-        ),
+        errorFactory.domain('UnableToSave', 'validation', {
+          message: 'Redis repository only accepts anonymous URLs (userId must be undefined)',
+        }),
       )
     }
 
     const response = await this.client.set(shortUrl.code, shortUrl.url, 'EX', this.ttlSeconds, 'NX')
-    return !response ? Err(errorFactory.domain('DuplicateCode')) : Ok(undefined)
+    return !response ? Err(errorFactory.domain('DuplicateCode', 'conflict')) : Ok(undefined)
   }
 }

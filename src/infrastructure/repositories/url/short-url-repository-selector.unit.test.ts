@@ -1,8 +1,13 @@
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
+import { errorFactory } from '@shared/errors.js'
+import { Ok, Err } from '@shared/result.js'
 
 import { ShortUrlRepositorySelector } from './short-url-repository-selector.js'
+
+type Success<T> = T & { ok: true }
+type Failure<T> = Exclude<T, { ok: true }>
 
 describe('ShortUrlRepositorySelector', () => {
   let selector: ShortUrlRepositorySelector
@@ -26,145 +31,149 @@ describe('ShortUrlRepositorySelector', () => {
   describe('findByCode()', () => {
     const code = 'abc123'
 
-    it('should return result from Redis when found', async () => {
-      const expectedShortUrl = new ShortUrl(
-        'id1',
-        code,
-        new ValidUrl('https://example.com'),
-        undefined,
-        false,
-      )
-      mockRedisRepository.findByCode.mockResolvedValue(expectedShortUrl)
+    it('returns Ok(ShortUrl) from Redis when found', async () => {
+      const urlRes = ValidUrl.create('https://example.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create('id1', code, (urlRes as Success<typeof urlRes>).value)
+      expect(entityRes.ok).toBe(true)
+      mockRedisRepository.findByCode.mockResolvedValue(entityRes)
 
-      const result = await selector.findByCode(code)
-
+      const res = await selector.findByCode(code)
       expect(mockRedisRepository.findByCode).toHaveBeenCalledWith(code)
       expect(mockPostgresRepository.findByCode).not.toHaveBeenCalled()
-      expect(result).toBe(expectedShortUrl)
+      expect(res.ok).toBe(true)
+      const success = res as Success<typeof res>
+      expect(success.value!.code).toBe(code)
     })
 
-    it('should check Postgres when not found in Redis', async () => {
-      const expectedShortUrl = new ShortUrl(
+    it('queries Postgres when Redis returns Ok(null)', async () => {
+      mockRedisRepository.findByCode.mockResolvedValue(Ok(null))
+      const urlRes = ValidUrl.create('https://example.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create(
         'id2',
         code,
-        new ValidUrl('https://example.com'),
+        (urlRes as Success<typeof urlRes>).value,
         'user123',
-        false,
       )
-      mockRedisRepository.findByCode.mockResolvedValue(null)
-      mockPostgresRepository.findByCode.mockResolvedValue(expectedShortUrl)
+      expect(entityRes.ok).toBe(true)
+      mockPostgresRepository.findByCode.mockResolvedValue(entityRes)
 
-      const result = await selector.findByCode(code)
-
+      const res = await selector.findByCode(code)
       expect(mockRedisRepository.findByCode).toHaveBeenCalledWith(code)
       expect(mockPostgresRepository.findByCode).toHaveBeenCalledWith(code)
-      expect(result).toBe(expectedShortUrl)
+      expect(res.ok).toBe(true)
+      const success = res as Success<typeof res>
+      expect(success.value!.userId).toBe('user123')
     })
 
-    it('should return null when not found in either repository', async () => {
-      mockRedisRepository.findByCode.mockResolvedValue(null)
-      mockPostgresRepository.findByCode.mockResolvedValue(null)
-
-      const result = await selector.findByCode(code)
-
+    it('returns Ok(null) when not found in either repository', async () => {
+      mockRedisRepository.findByCode.mockResolvedValue(Ok(null))
+      mockPostgresRepository.findByCode.mockResolvedValue(Ok(null))
+      const res = await selector.findByCode(code)
       expect(mockRedisRepository.findByCode).toHaveBeenCalledWith(code)
       expect(mockPostgresRepository.findByCode).toHaveBeenCalledWith(code)
-      expect(result).toBeNull()
+      expect(res.ok).toBe(true)
+      expect(res.ok && res.value).toBeNull()
     })
 
-    it('should handle Redis repository errors and still check Postgres', async () => {
-      const expectedShortUrl = new ShortUrl(
-        'id3',
-        code,
-        new ValidUrl('https://example.com'),
-        'user456',
-        false,
-      )
-      mockRedisRepository.findByCode.mockRejectedValue(new Error('Redis connection error'))
-      mockPostgresRepository.findByCode.mockResolvedValue(expectedShortUrl)
-
-      await expect(selector.findByCode(code)).rejects.toThrow('Redis connection error')
+    it('propagates Redis Err without querying Postgres', async () => {
+      const err = Err(errorFactory.domain('InvalidValue', 'validation'))
+      mockRedisRepository.findByCode.mockResolvedValue(err)
+      const res = await selector.findByCode(code)
       expect(mockRedisRepository.findByCode).toHaveBeenCalledWith(code)
       expect(mockPostgresRepository.findByCode).not.toHaveBeenCalled()
+      expect(res.ok).toBe(false)
+      const failure = res as Failure<typeof res>
+      expect(failure.error.type).toBe('InvalidValue')
     })
   })
 
   describe('save()', () => {
-    it('should save anonymous URL (userId = undefined) to Redis repository', async () => {
-      const anonymousUrl = new ShortUrl(
-        'id4',
-        'xyz789',
-        new ValidUrl('https://anonymous.com'),
-        undefined,
-        true,
-      )
-
-      await selector.save(anonymousUrl)
-
-      expect(mockRedisRepository.save).toHaveBeenCalledWith(anonymousUrl)
+    it('saves anonymous URL (userId undefined) to Redis', async () => {
+      const urlRes = ValidUrl.create('https://anonymous.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create('id4', 'xyz789', (urlRes as Success<typeof urlRes>).value)
+      expect(entityRes.ok).toBe(true)
+      const entity = (entityRes as Success<typeof entityRes>).value
+      mockRedisRepository.save.mockResolvedValue(Ok(undefined))
+      const res = await selector.save(entity)
+      expect(mockRedisRepository.save).toHaveBeenCalledWith(entity)
       expect(mockPostgresRepository.save).not.toHaveBeenCalled()
+      expect(res.ok).toBe(true)
     })
 
-    it('should save authenticated URL (userId provided) to Postgres repository', async () => {
-      const authenticatedUrl = new ShortUrl(
+    it('saves authenticated URL (userId provided) to Postgres', async () => {
+      const urlRes = ValidUrl.create('https://authenticated.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create(
         'id5',
         'def456',
-        new ValidUrl('https://authenticated.com'),
+        (urlRes as Success<typeof urlRes>).value,
         'user789',
-        true,
       )
-
-      await selector.save(authenticatedUrl)
-
-      expect(mockPostgresRepository.save).toHaveBeenCalledWith(authenticatedUrl)
+      expect(entityRes.ok).toBe(true)
+      const entity = (entityRes as Success<typeof entityRes>).value
+      mockPostgresRepository.save.mockResolvedValue(Ok(undefined))
+      const res = await selector.save(entity)
+      expect(mockPostgresRepository.save).toHaveBeenCalledWith(entity)
       expect(mockRedisRepository.save).not.toHaveBeenCalled()
+      expect(res.ok).toBe(true)
     })
 
-    it('should propagate Redis repository errors for anonymous URLs', async () => {
-      const anonymousUrl = new ShortUrl(
-        'id6',
-        'error123',
-        new ValidUrl('https://error.com'),
-        undefined,
-        true,
-      )
-      const redisError = new Error('Redis save failed')
-      mockRedisRepository.save.mockRejectedValue(redisError)
-
-      await expect(selector.save(anonymousUrl)).rejects.toThrow('Redis save failed')
-      expect(mockRedisRepository.save).toHaveBeenCalledWith(anonymousUrl)
+    it('propagates Redis Err for anonymous URLs', async () => {
+      const urlRes = ValidUrl.create('https://error.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create('id6', 'error123', (urlRes as Success<typeof urlRes>).value)
+      expect(entityRes.ok).toBe(true)
+      const entity = (entityRes as Success<typeof entityRes>).value
+      const failure = Err(errorFactory.domain('UnableToSave', 'internal_error'))
+      mockRedisRepository.save.mockResolvedValue(failure)
+      const res = await selector.save(entity)
+      expect(mockRedisRepository.save).toHaveBeenCalledWith(entity)
       expect(mockPostgresRepository.save).not.toHaveBeenCalled()
+      expect(res.ok).toBe(false)
+      const fail = res as Failure<typeof res>
+      expect(fail.error.type).toBe('UnableToSave')
     })
 
-    it('should propagate Postgres repository errors for authenticated URLs', async () => {
-      const authenticatedUrl = new ShortUrl(
+    it('propagates Postgres Err for authenticated URLs', async () => {
+      const urlRes = ValidUrl.create('https://error.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create(
         'id7',
         'error456',
-        new ValidUrl('https://error.com'),
+        (urlRes as Success<typeof urlRes>).value,
         'user999',
-        true,
       )
-      const postgresError = new Error('Postgres save failed')
-      mockPostgresRepository.save.mockRejectedValue(postgresError)
-
-      await expect(selector.save(authenticatedUrl)).rejects.toThrow('Postgres save failed')
-      expect(mockPostgresRepository.save).toHaveBeenCalledWith(authenticatedUrl)
+      expect(entityRes.ok).toBe(true)
+      const entity = (entityRes as Success<typeof entityRes>).value
+      const failure = Err(errorFactory.domain('UnableToSave', 'internal_error'))
+      mockPostgresRepository.save.mockResolvedValue(failure)
+      const res = await selector.save(entity)
+      expect(mockPostgresRepository.save).toHaveBeenCalledWith(entity)
       expect(mockRedisRepository.save).not.toHaveBeenCalled()
+      expect(res.ok).toBe(false)
+      const fail = res as Failure<typeof res>
+      expect(fail.error.type).toBe('UnableToSave')
     })
 
-    it('should handle edge case where userId is empty string (treated as authenticated)', async () => {
-      const emptyUserIdUrl = new ShortUrl(
+    it('treats empty string userId as authenticated (saved to Postgres)', async () => {
+      const urlRes = ValidUrl.create('https://empty.com')
+      expect(urlRes.ok).toBe(true)
+      const entityRes = ShortUrl.create(
         'id8',
         'empty123',
-        new ValidUrl('https://empty.com'),
+        (urlRes as Success<typeof urlRes>).value,
         '',
-        true,
       )
-
-      await selector.save(emptyUserIdUrl)
-
-      expect(mockPostgresRepository.save).toHaveBeenCalledWith(emptyUserIdUrl)
+      expect(entityRes.ok).toBe(true)
+      const entity = (entityRes as Success<typeof entityRes>).value
+      mockPostgresRepository.save.mockResolvedValue(Ok(undefined))
+      const res = await selector.save(entity)
+      expect(mockPostgresRepository.save).toHaveBeenCalledWith(entity)
       expect(mockRedisRepository.save).not.toHaveBeenCalled()
+      expect(res.ok).toBe(true)
     })
   })
 })
