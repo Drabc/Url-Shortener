@@ -1,4 +1,6 @@
-import { InvalidEmailError } from '@domain/errors/invalid-email.error.js'
+import { DomainValidationError } from '@domain/errors/index.js'
+import { errorFactory } from '@shared/errors.js'
+import { Err, Ok, Result } from '@shared/result.js'
 
 /**
  * Value object representing a validated email address.
@@ -10,13 +12,13 @@ export class Email {
   /**
    * Creates an Email value object after validating the input string.
    * @param {string} raw - The raw email string to validate and normalize.
-   * @returns {Email} An instance of Email if valid.
-   * @throws InvalidEmailError if the email format is invalid.
+   * @returns {Result<Email, DomainValidationError>} An instance of Email or validation error.
    */
-  public static create(raw: string): Email {
+  public static create(raw: string): Result<Email, DomainValidationError> {
     const validEmailRegexp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
     const email = raw.normalize('NFC').trim()
-    if (!validEmailRegexp.test(email)) throw new InvalidEmailError(email)
-    return new Email(email)
+    return !validEmailRegexp.test(email)
+      ? Err(errorFactory.domain('InvalidEmail', 'validation', { message: 'Invalid email format' }))
+      : Ok(new Email(email))
   }
 }

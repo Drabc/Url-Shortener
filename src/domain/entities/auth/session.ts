@@ -199,8 +199,8 @@ export class Session extends BaseEntity {
     now: Date,
   ): Result<void, BaseDomainError<'InvalidSession'>> {
     const activeToken = this._tokens.find((t) => t.isActive())
-    const sessionErrorResult = (cause: string): Err<BaseDomainError<'InvalidSession'>> => {
-      return Err(errorFactory.domain('InvalidSession', cause))
+    const sessionErrorResult = (cause: string): Err<never, BaseDomainError<'InvalidSession'>> => {
+      return Err(errorFactory.domain('InvalidSession', 'unauthorized', { cause }))
     }
 
     if (this._status !== STATUSES.active) {

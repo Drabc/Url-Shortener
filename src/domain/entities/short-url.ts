@@ -1,13 +1,11 @@
-import { EmptyValueError } from '@domain/errors/empty-value.error.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { BaseEntity } from '@domain/entities/base-entity.js'
+import { InvalidValue } from '@domain/errors/index.js'
+import { errorFactory } from '@shared/errors.js'
+import { Err, Ok, Result } from '@shared/result.js'
 
 /**
  * Represents a shortened URL entity.
- * @param {string} id - The unique identifier for the short URL. Defaults to an empty string.
- * @param {string} code - The unique code for the short URL.
- * @param {ValidUrl} originalUrl - The original URL that is being shortened.
- * @throws {EmptyValueError} Thrown if the code is empty.
  */
 export class ShortUrl extends BaseEntity {
   /**
@@ -27,16 +25,32 @@ export class ShortUrl extends BaseEntity {
     return this._userId
   }
 
-  constructor(
+  /**
+   * Creates a ShortUrl owned by a user.
+   * @param {string} id The unique identifier for the short url entity.
+   * @param {string} code The short code representing the shortened url.
+   * @param {ValidUrl} originalUrl The validated original URL to shorten.
+   * @param {string} userId The unique identifier of the owning user.
+   * @returns {Result<ShortUrl, InvalidValue>} Ok with ShortUrl or Err with InvalidValue when code is empty.
+   */
+  public static create(
+    id: string,
+    code: string,
+    originalUrl: ValidUrl,
+    userId?: string,
+  ): Result<ShortUrl, InvalidValue> {
+    if (!code) return Err(errorFactory.domain('InvalidValue', 'internal_error'))
+
+    return Ok(new ShortUrl(id, code, originalUrl, userId))
+  }
+
+  private constructor(
     public readonly id: string,
     public readonly code: string,
     private originalUrl: ValidUrl,
     private readonly _userId?: string,
     isNew: boolean = true,
   ) {
-    if (!code) {
-      throw new EmptyValueError('Code must not be empty')
-    }
     super(id, isNew)
   }
 }

@@ -1,7 +1,9 @@
 import { User } from '@domain/entities/user.js'
 import { Email } from '@domain/value-objects/email.js'
-import { EmptyValueError } from '@domain/errors/empty-value.error.js'
-import { PasswordUpdateTimeError } from '@domain/errors/password-update-time.error.js'
+// Result-based error typing imported implicitly via factory usage
+
+type Success<T> = T & { ok: true }
+type Failure<T> = Exclude<T, { ok: true }>
 
 /**
  * Helper to create a User with sensible defaults overridden as needed for tests.
@@ -17,14 +19,16 @@ function makeUser(
     passwordUpdatedAt: Date
   }> = {},
 ) {
-  return new User(
+  const res = User.create(
     'user-1',
     overrides.firstName ?? 'First',
     overrides.lastName ?? 'Last',
-    { value: overrides.email ?? 'user@example.com' } as unknown as Email,
+    overrides.email ?? 'user@example.com',
     overrides.passwordHash ?? 'hash1',
     overrides.passwordUpdatedAt ?? new Date('2025-01-01T00:00:00.000Z'),
   )
+  // Success/Failure narrowing (avoid throwing)
+  return (res as Success<typeof res>).value
 }
 
 describe('User Entity', () => {
@@ -39,50 +43,65 @@ describe('User Entity', () => {
 
   it('updates first name with non-empty value', () => {
     const user = makeUser()
-    user.firstName = 'NewFirst'
+    const res = user.updateFirstName('NewFirst')
+    expect(res.ok).toBe(true)
+    void (res as Success<typeof res>)
     expect(user.firstName).toBe('NewFirst')
   })
 
-  it('throws EmptyResourceError on empty first name', () => {
+  it('returns Err on empty first name', () => {
     const user = makeUser()
-    expect(() => (user.firstName = '')).toThrow(EmptyValueError)
+    const res = user.updateFirstName('')
+    expect(res.ok).toBe(false)
+    const failure = res as Failure<typeof res>
+    expect(failure.error.type).toBe('InvalidValue')
   })
 
   it('updates last name with non-empty value', () => {
     const user = makeUser()
-    user.lastName = 'NewLast'
+    const res = user.updateLastName('NewLast')
+    expect(res.ok).toBe(true)
     expect(user.lastName).toBe('NewLast')
   })
 
-  it('throws EmptyResourceError on empty last name', () => {
+  it('returns Err on empty last name', () => {
     const user = makeUser()
-    expect(() => (user.lastName = '')).toThrow(EmptyValueError)
+    const res = user.updateLastName('')
+    expect(res.ok).toBe(false)
+    const failure = res as Failure<typeof res>
+    expect(failure.error.type).toBe('InvalidValue')
   })
 
   it('updates email using raw string', () => {
     const user = makeUser()
-    user.email = 'other@example.com'
+    const res = user.updateEmail('other@example.com')
+    expect(res.ok).toBe(true)
     expect(user.email.value).toBe('other@example.com')
   })
 
   it('accepts Email value object directly', () => {
     const user = makeUser()
     const vo = { value: 'direct@example.com' } as unknown as Email
-    user.email = vo
+    const res = user.updateEmail(vo)
+    expect(res.ok).toBe(true)
     expect(user.email).toBe(vo)
   })
 
   it('changePasswordHash updates hash and timestamp when later date provided', () => {
     const user = makeUser()
     const later = new Date('2025-02-01T00:00:00.000Z')
-    user.changePasswordHash('hash2', later)
+    const res = user.changePasswordHash('hash2', later)
+    expect(res.ok).toBe(true)
     expect(user.passwordHash).toBe('hash2')
     expect(user.passwordUpdatedAt).toEqual(later)
   })
 
-  it('changePasswordHash throws PasswordUpdateTimeError when timestamp not later', () => {
+  it('changePasswordHash returns Err(InvalidPasswordTime) when timestamp not later', () => {
     const user = makeUser()
     const same = new Date('2025-01-01T00:00:00.000Z')
-    expect(() => user.changePasswordHash('hash2', same)).toThrow(PasswordUpdateTimeError)
+    const res = user.changePasswordHash('hash2', same)
+    expect(res.ok).toBe(false)
+    const failure = res as Failure<typeof res>
+    expect(failure.error.type).toBe('InvalidPasswordTime')
   })
 })
