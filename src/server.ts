@@ -1,7 +1,7 @@
 import { clock } from '@application/shared/clock.js'
 import { bootstrap } from '@composition/bootstrap.js'
 import { createDeps } from '@composition/create-deps.js'
-import { createHttpApp } from '@composition/createHttpApp.js'
+import { createHttpApp } from '@composition/create-http-app.js'
 import { config } from '@infrastructure/config/config.js'
 import { logger } from '@infrastructure/logging/logger.js'
 

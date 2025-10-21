@@ -11,7 +11,7 @@
     "format": "prettier --check 'src/**/*.{ts,js,json,md}'",
     "lint": "eslint src --cache",
     "start": "node dist/server.js",
-    "start:dev": "tsx watch src/server.ts",
+    "start:dev": "vite",
     "test": "jest --no-coverage",
     "test:watch": "jest --watch --no-coverage"
   },
@@ -43,7 +43,11 @@
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vite": "^7.1.10",
+    "vite-node": "^3.2.4",
+    "vite-plugin-node": "^7.0.0",
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "dependencies": {
     "argon2": "^0.44.0",
