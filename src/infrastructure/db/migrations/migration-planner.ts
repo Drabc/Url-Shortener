@@ -1,6 +1,6 @@
-import { readFileSync, readdirSync, Dirent } from 'fs'
-import { join } from 'path'
-import { pathToFileURL } from 'url'
+import { readFileSync, readdirSync, Dirent } from 'node:fs'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import { Db } from 'mongodb'
 

@@ -1,6 +1,6 @@
+import { createRequire } from 'node:module'
+
 import express, { Express, Request, Response } from 'express'
-import swaggerUi from 'swagger-ui-express'
-import OpenApiValidator from 'express-openapi-validator'
 import { OpenAPIV3 } from 'openapi-types'
 import cookieParser from 'cookie-parser'
 
@@ -13,6 +13,10 @@ import { createShortenerRouter } from '@api/routes/shortener.routes.js'
 import { createRedirectRoutes } from '@api/routes/redirect.routes.js'
 import { createAuthRouter } from '@api/routes/auth.routes.js'
 import { createMeRouter } from '@api/routes/me.routes.js'
+
+const require = createRequire(import.meta.url)
+const swaggerUi = require('swagger-ui-express')
+const OpenApiValidator = require('express-openapi-validator')
 
 /**
  * Creates an Express application with API and redirect routes.
