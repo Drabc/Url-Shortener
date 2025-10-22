@@ -25,7 +25,6 @@ A production URL shortener of this size would normally pick one datastore and us
 
 ### Backend
 
-- Rework client types, update docker compose to only require what is needed, update configs to only require what is needed
 - Add integration tests
 - Rate limits anonymous vs account
 - Open API throws exception. See if it can use results instead.
