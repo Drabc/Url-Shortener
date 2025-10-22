@@ -1,5 +1,5 @@
 import { Redis, RedisOptions } from 'ioredis'
-// import { Db, MongoClient } from 'mongodb'
+import { Db, MongoClient } from 'mongodb'
 import { Logger } from 'pino'
 import { Pool } from 'pg'
 
@@ -88,7 +88,7 @@ export async function createPersistenceConnections(
     // No need to abstract yet.
     try {
       if (key === 'mongo') {
-        // registry[key] = await createMongoEntry(cfg, logger)
+        registry[key] = await createMongoEntry(cfg, logger)
       } else if (key === 'redis') {
         registry[key] = createRedisEntry(cfg, logger)
       } else if (key === 'postgres') {
@@ -105,37 +105,33 @@ export async function createPersistenceConnections(
   return new PersistenceConnections(logger, registry)
 }
 
-// Disabling for now
-// /**
-//  * Creates and connects to MongoDB client
-//  * @param {typeof config} cfg configuration object
-//  * @param {Logger} logger logger instance
-//  * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
-//  */
-// async function createMongoEntry(
-//   cfg: typeof config,
-//   logger: Logger,
-// ): Promise<ClientEntryOf<Db>> {
-//   const conn = new MongoClient(cfg.mongoEndpoint, {
-//     auth: {
-//       username: cfg.mongoUsername,
-//       password: cfg.mongoPassword,
-//     },
-//   })
+/**
+ * Creates and connects to MongoDB client
+ * @param {typeof config} cfg configuration object
+ * @param {Logger} logger logger instance
+ * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
+ */
+async function createMongoEntry(cfg: typeof config, logger: Logger): Promise<ClientEntryOf<Db>> {
+  const conn = new MongoClient(cfg.mongoEndpoint, {
+    auth: {
+      username: cfg.mongoUsername,
+      password: cfg.mongoPassword,
+    },
+  })
 
-//   logger.info('Connecting to MongoDB...')
-//   await conn.connect()
+  logger.info('Connecting to MongoDB...')
+  await conn.connect()
 
-//   const disconnect = async () => {
-//     await conn.close()
-//     logger.info('MongoDB Client disconnected')
-//   }
+  const disconnect = async () => {
+    await conn.close()
+    logger.info('MongoDB Client disconnected')
+  }
 
-//   return {
-//     client: conn.db(cfg.mongoDb),
-//     disconnect,
-//   }
-// }
+  return {
+    client: conn.db(cfg.mongoDb),
+    disconnect,
+  }
+}
 
 /**
  * Creates and connects to Redis client
