@@ -1,3 +1,5 @@
+import { vi, Mock } from 'vitest'
+
 import { PostgresSessionRepository } from '@infrastructure/repositories/session/postgres-session.repository.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
 import { Session } from '@domain/entities/auth/session.js'
@@ -27,11 +29,11 @@ function makeSession(attrs: { id?: string } = {}) {
 }
 
 describe('PostgresSessionRepository', () => {
-  let pg: { findMany: jest.Mock; query: jest.Mock }
+  let pg: { findMany: Mock; query: Mock }
   let repo: PostgresSessionRepository
 
   beforeEach(() => {
-    pg = { findMany: jest.fn(), query: jest.fn() }
+    pg = { findMany: vi.fn(), query: vi.fn() }
     repo = new PostgresSessionRepository(pg as unknown as PgClient)
   })
 

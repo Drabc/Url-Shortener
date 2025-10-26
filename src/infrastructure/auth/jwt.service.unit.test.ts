@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import type { CryptoKey, JWTPayload } from 'jose'
 import { Logger } from 'pino'
 
@@ -5,7 +6,7 @@ import { JwtService } from '@infrastructure/auth/jwt.service.js'
 
 type Header = { alg: string }
 
-jest.mock('jose', () => {
+vi.mock('jose', () => {
   /**
    * Fake implementation of SignJWT used in tests to mimic JWT signing without real cryptographic operations.
    */
@@ -99,9 +100,9 @@ describe('JwtService', () => {
   const fixedNow = new Date('2025-01-01T00:00:00.000Z')
 
   const clock = { now: () => fixedNow }
-  const logger = { warn: jest.fn() } as unknown as jest.Mocked<Logger>
-  const idGen = jest.fn(() => id) as unknown as typeof crypto.randomUUID
-  const verifier = jest.fn()
+  const logger = { warn: vi.fn() } as unknown as jest.Mocked<Logger>
+  const idGen = vi.fn(() => id) as unknown as typeof crypto.randomUUID
+  const verifier = vi.fn()
   const jwtService = new JwtService(
     issuer,
     audience,
@@ -116,7 +117,7 @@ describe('JwtService', () => {
   )
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('issue', () => {

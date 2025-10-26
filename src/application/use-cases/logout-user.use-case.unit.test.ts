@@ -1,3 +1,5 @@
+import { vi, Mocked } from 'vitest'
+
 import { ISessionRepository } from '@domain/repositories/session.repository.interface.js'
 import { ITokenDigester } from '@domain/utils/token-digester.js'
 import { Clock } from '@application/shared/clock.js'
@@ -9,9 +11,9 @@ import { LogoutUser } from './logout-user.use-case.js'
 
 describe('LogoutUser', () => {
   let logoutUser: LogoutUser
-  let mockSessionRepo: jest.Mocked<ISessionRepository>
-  let mockTokenDigester: jest.Mocked<ITokenDigester>
-  let mockClock: jest.Mocked<Clock>
+  let mockSessionRepo: Mocked<ISessionRepository>
+  let mockTokenDigester: Mocked<ITokenDigester>
+  let mockClock: Mocked<Clock>
 
   const userId = 'user-123'
   const now = new Date('2023-01-01T00:00:00Z')
@@ -23,19 +25,19 @@ describe('LogoutUser', () => {
 
   beforeEach(() => {
     mockSessionRepo = {
-      findActiveByUserId: jest.fn(),
-      findSessionForRefresh: jest.fn(),
-      save: jest.fn(),
+      findActiveByUserId: vi.fn(),
+      findSessionForRefresh: vi.fn(),
+      save: vi.fn(),
     }
 
     mockTokenDigester = {
-      digest: jest.fn(),
-      verify: jest.fn(),
-    } as jest.Mocked<ITokenDigester>
+      digest: vi.fn(),
+      verify: vi.fn(),
+    } as Mocked<ITokenDigester>
 
     mockClock = {
-      now: jest.fn().mockReturnValue(now),
-    } as jest.Mocked<Clock>
+      now: vi.fn().mockReturnValue(now),
+    } as Mocked<Clock>
 
     logoutUser = new LogoutUser(mockSessionRepo, mockTokenDigester, mockClock)
     // Default successful persistence Result for tests that trigger a save
@@ -54,8 +56,8 @@ describe('LogoutUser', () => {
       const refreshToken = Buffer.from('refresh-token-123')
       const mockSession = {
         clientId: 'desktop',
-        hasActiveRefreshToken: jest.fn().mockReturnValue(true),
-        revoke: jest.fn(),
+        hasActiveRefreshToken: vi.fn().mockReturnValue(true),
+        revoke: vi.fn(),
       } as unknown as Session
 
       mockSessionRepo.findActiveByUserId.mockResolvedValue([mockSession])
@@ -76,8 +78,8 @@ describe('LogoutUser', () => {
       const refreshToken = Buffer.from('refresh-token-123')
       const mockSession = {
         clientId: 'mobile', // Different client ID
-        hasActiveRefreshToken: jest.fn(),
-        revoke: jest.fn(),
+        hasActiveRefreshToken: vi.fn(),
+        revoke: vi.fn(),
       } as unknown as Session
 
       mockSessionRepo.findActiveByUserId.mockResolvedValue([mockSession])
@@ -94,8 +96,8 @@ describe('LogoutUser', () => {
       const refreshToken = Buffer.from('invalid-token')
       const mockSession = {
         clientId: 'desktop',
-        hasActiveRefreshToken: jest.fn().mockReturnValue(false),
-        revoke: jest.fn(),
+        hasActiveRefreshToken: vi.fn().mockReturnValue(false),
+        revoke: vi.fn(),
       } as unknown as Session
 
       mockSessionRepo.findActiveByUserId.mockResolvedValue([mockSession])
@@ -115,14 +117,14 @@ describe('LogoutUser', () => {
       const refreshToken = Buffer.from('refresh-token-123')
       const matchingSession = {
         clientId: 'desktop',
-        hasActiveRefreshToken: jest.fn().mockReturnValue(true),
-        revoke: jest.fn(),
+        hasActiveRefreshToken: vi.fn().mockReturnValue(true),
+        revoke: vi.fn(),
       } as unknown as Session
 
       const nonMatchingSession = {
         clientId: 'mobile',
-        hasActiveRefreshToken: jest.fn(),
-        revoke: jest.fn(),
+        hasActiveRefreshToken: vi.fn(),
+        revoke: vi.fn(),
       } as unknown as Session
 
       mockSessionRepo.findActiveByUserId.mockResolvedValue([matchingSession, nonMatchingSession])
@@ -140,11 +142,11 @@ describe('LogoutUser', () => {
   describe('logoutAllSessions()', () => {
     it('should revoke all active sessions for the user', async () => {
       const session1 = {
-        revoke: jest.fn(),
+        revoke: vi.fn(),
       } as unknown as Session
 
       const session2 = {
-        revoke: jest.fn(),
+        revoke: vi.fn(),
       } as unknown as Session
 
       mockSessionRepo.findActiveByUserId.mockResolvedValue([session1, session2])

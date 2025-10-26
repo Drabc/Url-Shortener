@@ -1,3 +1,5 @@
+import { vi, Mock } from 'vitest'
+
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { UserDTO } from '@application/dtos.js'
 import { User } from '@domain/entities/user.js'
@@ -9,15 +11,15 @@ import { errorFactory } from '@shared/errors.js'
 type Failure<T> = Exclude<T, { ok: true }>
 
 describe('RegisterUser Use Case', () => {
-  let repo: { save: jest.Mock }
-  let hasher: { hash: jest.Mock }
-  let clock: { now: jest.Mock }
+  let repo: { save: Mock }
+  let hasher: { hash: Mock }
+  let clock: { now: Mock }
   let useCase: RegisterUser
 
   beforeEach(() => {
-    repo = { save: jest.fn() }
-    hasher = { hash: jest.fn() }
-    clock = { now: jest.fn() }
+    repo = { save: vi.fn() }
+    hasher = { hash: vi.fn() }
+    clock = { now: vi.fn() }
     useCase = new RegisterUser(
       repo as unknown as IUserRepository,
       hasher as unknown as IPasswordHasher,

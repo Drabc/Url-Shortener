@@ -1,3 +1,4 @@
+import { vi, Mocked } from 'vitest'
 import type { Db, Collection, Document, InsertOneResult, UpdateResult, WithId } from 'mongodb'
 
 import { MongoMigrationPlan } from '@infrastructure/db/migrations/plans/mongo-migration-plan.js'
@@ -11,34 +12,34 @@ import {
 } from '@infrastructure/errors/migration.error.js'
 
 describe('MongoMigrationPlan', () => {
-  let ctx: jest.Mocked<Db>
-  let locksCollection: jest.Mocked<Collection<Document>>
-  let migrationsCollection: jest.Mocked<Collection<Document>>
+  let ctx: Mocked<Db>
+  let locksCollection: Mocked<Collection<Document>>
+  let migrationsCollection: Mocked<Collection<Document>>
   let plan: MongoMigrationPlan
   let mig: Migration<Db>
 
   beforeEach(() => {
     locksCollection = {
-      findOneAndUpdate: jest.fn(),
-      updateOne: jest.fn(),
-    } as unknown as jest.Mocked<Collection<Document>>
+      findOneAndUpdate: vi.fn(),
+      updateOne: vi.fn(),
+    } as unknown as Mocked<Collection<Document>>
 
     migrationsCollection = {
-      insertOne: jest.fn(),
-    } as unknown as jest.Mocked<Collection<Document>>
+      insertOne: vi.fn(),
+    } as unknown as Mocked<Collection<Document>>
 
     ctx = {
-      collection: jest.fn((name: string) => {
+      collection: vi.fn((name: string) => {
         if (name === 'migration_locks') return locksCollection
         if (name === 'migrations') return migrationsCollection
         throw new Error('unexpected collection: ' + name)
       }),
-    } as unknown as jest.Mocked<Db>
+    } as unknown as Mocked<Db>
 
     plan = new MongoMigrationPlan([], ctx)
     mig = {
       id: '0001-test',
-      up: jest.fn().mockResolvedValue(undefined),
+      up: vi.fn().mockResolvedValue(undefined),
     } as unknown as Migration<Db>
   })
 

@@ -1,3 +1,5 @@
+import { vi, Mock } from 'vitest'
+
 import {
   Argon2PasswordHasher,
   Argon2Like,
@@ -5,13 +7,13 @@ import {
 
 describe('Argon2PasswordHasher', () => {
   const pepper = 'super-secret-pepper'
-  let lib: { hash: jest.Mock; verify: jest.Mock }
+  let lib: { hash: Mock; verify: Mock }
   let hasher: Argon2PasswordHasher
 
   beforeEach(() => {
     lib = {
-      hash: jest.fn(),
-      verify: jest.fn(),
+      hash: vi.fn(),
+      verify: vi.fn(),
     }
     hasher = new Argon2PasswordHasher(pepper, lib as unknown as Argon2Like)
   })

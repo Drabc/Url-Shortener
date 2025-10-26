@@ -1,3 +1,5 @@
+import { vi, Mock } from 'vitest'
+
 import {
   PostgresUserRepository,
   UserRow,
@@ -7,14 +9,14 @@ import { User } from '@domain/entities/user.js'
 import { Err } from '@shared/result.js'
 
 describe('PostgresUserRepository', () => {
-  let pg: { findOne: jest.Mock; insert: jest.Mock }
+  let pg: { findOne: Mock; insert: Mock }
   let repo: PostgresUserRepository
 
   type Success<T> = Extract<T, { ok: true }>
   type Failure<T> = Extract<T, { ok: false }>
 
   beforeEach(() => {
-    pg = { findOne: jest.fn(), insert: jest.fn() }
+    pg = { findOne: vi.fn(), insert: vi.fn() }
     repo = new PostgresUserRepository(pg as unknown as PgClient)
   })
 

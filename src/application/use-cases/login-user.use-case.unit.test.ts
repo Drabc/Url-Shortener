@@ -1,3 +1,5 @@
+import { vi, Mocked, Mock } from 'vitest'
+
 import { LoginUser } from '@application/use-cases/login-user.use-case.js'
 import { Ok } from '@shared/result.js'
 import { IUserRepository } from '@domain/repositories/user.repository.interface.js'
@@ -19,13 +21,13 @@ type Failure<T> = Exclude<T, { ok: true }>
  * Tests for the LoginUser use case including newly added idempotent behavior when a refresh token is re-presented.
  */
 describe('LoginUser.exec()', () => {
-  let passwordHasher: jest.Mocked<IPasswordHasher>
-  let tokenDigester: jest.Mocked<ITokenDigester>
-  let refreshSecretGenerator: jest.Mocked<IRefreshSecretGenerator>
-  let jwtIssuer: jest.Mocked<IJwtIssuer>
-  let sessionRepo: jest.Mocked<ISessionRepository>
-  let userRepo: jest.Mocked<IUserRepository>
-  let clock: { now: jest.Mock }
+  let passwordHasher: Mocked<IPasswordHasher>
+  let tokenDigester: Mocked<ITokenDigester>
+  let refreshSecretGenerator: Mocked<IRefreshSecretGenerator>
+  let jwtIssuer: Mocked<IJwtIssuer>
+  let sessionRepo: Mocked<ISessionRepository>
+  let userRepo: Mocked<IUserRepository>
+  let clock: { now: Mock }
   let config: { sessionSecretLength: number; sessionTtl: number }
   let useCase: LoginUser
 
@@ -42,17 +44,17 @@ describe('LoginUser.exec()', () => {
   const user = (userRes as Success<typeof userRes>).value
 
   beforeEach(() => {
-    passwordHasher = { hash: jest.fn(), verify: jest.fn() }
-    tokenDigester = { digest: jest.fn(), verify: jest.fn() }
-    refreshSecretGenerator = { generate: jest.fn() }
-    jwtIssuer = { issue: jest.fn() }
+    passwordHasher = { hash: vi.fn(), verify: vi.fn() }
+    tokenDigester = { digest: vi.fn(), verify: vi.fn() }
+    refreshSecretGenerator = { generate: vi.fn() }
+    jwtIssuer = { issue: vi.fn() }
     sessionRepo = {
-      findActiveByUserId: jest.fn(),
-      findSessionForRefresh: jest.fn(),
-      save: jest.fn(),
+      findActiveByUserId: vi.fn(),
+      findSessionForRefresh: vi.fn(),
+      save: vi.fn(),
     }
-    userRepo = { findById: jest.fn(), findByEmail: jest.fn(), save: jest.fn() }
-    clock = { now: jest.fn() }
+    userRepo = { findById: vi.fn(), findByEmail: vi.fn(), save: vi.fn() }
+    clock = { now: vi.fn() }
     config = { sessionSecretLength: 64, sessionTtl: 3600 }
     useCase = new LoginUser(
       passwordHasher,

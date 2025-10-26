@@ -1,3 +1,4 @@
+import { vi, Mocked } from 'vitest'
 import { Logger } from 'pino'
 import { Db } from 'mongodb'
 
@@ -7,37 +8,37 @@ import { MigrationRunner } from '@infrastructure/db/migrations/migration-runner.
 import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
 
 describe('MigrationRunner', () => {
-  let planner: jest.Mocked<MigrationPlanner>
-  let plan: jest.Mocked<MigrationPlan<Db>>
-  let migration: jest.Mocked<Migration<Db>>
-  let logger: jest.Mocked<Logger>
+  let planner: Mocked<MigrationPlanner>
+  let plan: Mocked<MigrationPlan<Db>>
+  let migration: Mocked<Migration<Db>>
+  let logger: Mocked<Logger>
   let runner: MigrationRunner
-  let connections = {} as unknown as jest.Mocked<PersistenceConnections>
+  let connections = {} as unknown as Mocked<PersistenceConnections>
 
   beforeEach(() => {
     migration = {
-      up: jest.fn().mockResolvedValue(null),
-    } as unknown as jest.Mocked<Migration<Db>>
+      up: vi.fn().mockResolvedValue(null),
+    } as unknown as Mocked<Migration<Db>>
     plan = {
       migrations: [migration],
-      acquireLock: jest.fn().mockResolvedValue(null),
-      releaseLock: jest.fn().mockResolvedValue(null),
-      commitMigration: jest.fn().mockResolvedValue(null),
-    } as unknown as jest.Mocked<MigrationPlan<Db>>
+      acquireLock: vi.fn().mockResolvedValue(null),
+      releaseLock: vi.fn().mockResolvedValue(null),
+      commitMigration: vi.fn().mockResolvedValue(null),
+    } as unknown as Mocked<MigrationPlan<Db>>
     planner = {
-      plans: jest.fn().mockResolvedValue([plan]),
-    } as unknown as jest.Mocked<MigrationPlanner>
+      plans: vi.fn().mockResolvedValue([plan]),
+    } as unknown as Mocked<MigrationPlanner>
     logger = {
-      info: jest.fn(),
-    } as unknown as jest.Mocked<Logger>
+      info: vi.fn(),
+    } as unknown as Mocked<Logger>
     runner = new MigrationRunner(planner, logger)
   })
 
-  afterEach(() => jest.resetAllMocks())
+  afterEach(() => vi.resetAllMocks())
 
   describe('run()', () => {
     it('should not run any migrations if there are no plans', async () => {
-      planner.plans = jest.fn().mockResolvedValue([])
+      planner.plans = vi.fn().mockResolvedValue([])
       await runner.run(connections)
 
       expect(planner.plans).toHaveBeenCalledWith(connections)
@@ -48,8 +49,8 @@ describe('MigrationRunner', () => {
       const emptyPlan = {
         ...plan,
         migrations: [],
-      } as unknown as jest.Mocked<MigrationPlan<Db>>
-      planner.plans = jest.fn().mockResolvedValue([emptyPlan])
+      } as unknown as Mocked<MigrationPlan<Db>>
+      planner.plans = vi.fn().mockResolvedValue([emptyPlan])
 
       await runner.run(connections)
 
@@ -67,7 +68,7 @@ describe('MigrationRunner', () => {
     })
 
     it('should release the lock if the migration fails', async () => {
-      migration.up = jest.fn().mockRejectedValue(new Error('fail migration'))
+      migration.up = vi.fn().mockRejectedValue(new Error('fail migration'))
 
       await expect(runner.run(connections)).rejects.toThrow()
 

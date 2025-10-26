@@ -1,3 +1,4 @@
+import { vi, Mocked } from 'vitest'
 import { Redis } from 'ioredis'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
@@ -7,15 +8,15 @@ import { RedisShortUrlRepository } from '@infrastructure/repositories/url/redis-
 describe('RedisShortUrlRepository', () => {
   const code: string = 'abc123'
   let repository: RedisShortUrlRepository
-  let mockRedisClient: jest.Mocked<Redis>
+  let mockRedisClient: Mocked<Redis>
 
   type Failure<T> = Exclude<T, { ok: true }>
 
   beforeEach(() => {
     mockRedisClient = {
-      get: jest.fn(),
-      set: jest.fn(),
-    } as unknown as jest.Mocked<Redis>
+      get: vi.fn(),
+      set: vi.fn(),
+    } as unknown as Mocked<Redis>
 
     repository = new RedisShortUrlRepository(mockRedisClient)
   })
