@@ -56,13 +56,13 @@ const cfg = {
   mongoUsername: env.MONGO_INITDB_ROOT_USERNAME,
   mongoPassword: env.MONGO_INITDB_ROOT_PASSWORD,
   mongoDb: env.MONGO_DB,
-  isDev: env.NODE_ENV === 'development',
+  isDev: env.NODE_ENV !== 'production',
   rootDir: process.cwd(), // Can be replaced by a more robust solution
   clientTypes: env.CLIENT_TYPES,
   migrationsPath: join(process.cwd(), env.MIGRATIONS_PATH),
   postgresPassword: env.POSTGRES_PASSWORD,
   postgresUser: env.POSTGRES_USER,
-  postgresDb: env.POSTGRES_DB,
+  postgresDb: env.NODE_ENV === 'test' ? `test_${env.POSTGRES_DB}` : env.POSTGRES_DB,
   postgresHost: env.POSTGRES_HOST,
   pepper: env.PEPPER,
   sessionTtl: env.SESSION_TTL * 24 * 60 * 60, //days to seconds

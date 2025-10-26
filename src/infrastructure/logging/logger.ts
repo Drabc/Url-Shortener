@@ -16,6 +16,7 @@ const transport = config.isDev
         translateTime: true,
         ignore: 'pid,hostname',
       },
+      sync: true,
     }
   : undefined
 

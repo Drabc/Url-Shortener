@@ -23,6 +23,8 @@ class CreateUserMigration extends Migration<PgClient> {
    * Runs the migration to create the 'users' table.
    */
   public async up(): Promise<void> {
+    await this.ctx.query('CREATE EXTENSION IF NOT EXISTS citext')
+
     await this.ctx.query(`
       CREATE TABLE app.users (
         id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -37,10 +39,10 @@ class CreateUserMigration extends Migration<PgClient> {
     `)
 
     await this.ctx.query(`
-      create trigger trg_users_touch_updated_at
-      before update on app.users
-      for each row
-      execute function app.trg_touch_updated_at(i)
+      CREATE TRIGGER trg_users_touch_updated_at
+      BEFORE UPDATE ON app.users
+      FOR EACH ROW
+      EXECUTE FUNCTION app.trg_touch_updated_at(i)
     `)
   }
 }

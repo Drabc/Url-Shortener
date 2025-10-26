@@ -167,8 +167,8 @@ function createRedisEntry(cfg: typeof config, logger: Logger): ClientEntryOf<Red
  * @param {Logger} logger logger instance
  * @returns {ClientEntryOf<PgClient>} Connected Postgres client entry
  */
-function createPostgresEntry(cfg: typeof config, logger: Logger): ClientEntryOf<PgClient> {
-  logger.info('Connecting to Postgres...')
+export function createPostgresEntry(cfg: typeof config, logger: Logger): ClientEntryOf<PgClient> {
+  logger.info(`Connecting to Postgres ${cfg.postgresDb}...`)
   const pool = new Pool({
     user: cfg.postgresUser,
     host: cfg.postgresHost,
