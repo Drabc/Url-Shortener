@@ -11,7 +11,7 @@ export type Config = typeof config
 // that are actually enabled.
 const env = cleanEnv(process.env, {
   PORT: port({ default: 3000 }),
-  BASE_URL: str({ default: 'localhost:3000' }),
+  APP_BASE_URL: str({ default: 'localhost:3000' }),
   CLIENT_TYPES: json<ClientKey[]>({
     desc: 'What clients would be used. Determines if migrations need to run if supported',
   }),
@@ -47,7 +47,7 @@ const env = cleanEnv(process.env, {
 
 const cfg = {
   port: env.PORT,
-  baseUrl: env.BASE_URL,
+  baseUrl: env.APP_BASE_URL,
   redisHost: env.REDIS_HOST,
   redisPort: env.REDIS_PORT,
   redisUsername: env.REDIS_USERNAME,
