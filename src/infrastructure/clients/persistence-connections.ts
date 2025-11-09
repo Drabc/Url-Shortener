@@ -10,7 +10,7 @@ import {
   ClientMap,
 } from '@infrastructure/clients/types.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
-import { config } from '@infrastructure/config/config.js'
+import type { Config } from '@infrastructure/config/config.js'
 import {
   ClientInitializationError,
   UnsupportedClientKeyError,
@@ -18,11 +18,14 @@ import {
   ClientDisconnectError,
 } from '@infrastructure/errors/clients.error.js'
 
+type clientOverwrites = {
+  pg: (pool: Pool) => PgClient
+}
+
 /**
  * PersistenceConnections holds initialized persistence clients (e.g., Mongo, Redis)
  * and provides a uniform way to access and disconnect them.
  * Construction is synchronous; use the factory to build the registry first.
- * @param {typeof config} cfg - Configuration object for client initialization.
  * @param {Logger} logger - Logger instance for logging connection status.
  * @param {ClientEntries} registry - Pre-initialized client entries.
  */
@@ -71,13 +74,15 @@ export class PersistenceConnections {
 
 /**
  * Factory: builds the client registry and returns a ready PersistenceConnections.
- * @param {typeof config} cfg configuration object
+ * @param {Config} cfg configuration object
  * @param {Logger} logger logger instance
+ * @param {clientOverwrites} overwrites Optional overwrites to replace clients
  * @returns {Promise<PersistenceConnections>} connected clients registry
  */
 export async function createPersistenceConnections(
-  cfg: typeof config,
+  cfg: Config,
   logger: Logger,
+  overwrites?: clientOverwrites,
 ): Promise<PersistenceConnections> {
   const registry: ClientEntries = {}
 
@@ -92,7 +97,7 @@ export async function createPersistenceConnections(
       } else if (key === 'redis') {
         registry[key] = createRedisEntry(cfg, logger)
       } else if (key === 'postgres') {
-        registry[key] = createPostgresEntry(cfg, logger)
+        registry[key] = createPostgresEntry(cfg, logger, overwrites)
       } else {
         throw new UnsupportedClientKeyError(key)
       }
@@ -107,11 +112,11 @@ export async function createPersistenceConnections(
 
 /**
  * Creates and connects to MongoDB client
- * @param {typeof config} cfg configuration object
+ * @param {Config} cfg configuration object
  * @param {Logger} logger logger instance
  * @returns {Promise<ClientEntryOf<Db>>} Connected MongoDB database entry
  */
-async function createMongoEntry(cfg: typeof config, logger: Logger): Promise<ClientEntryOf<Db>> {
+async function createMongoEntry(cfg: Config, logger: Logger): Promise<ClientEntryOf<Db>> {
   const conn = new MongoClient(cfg.mongoEndpoint, {
     auth: {
       username: cfg.mongoUsername,
@@ -135,11 +140,11 @@ async function createMongoEntry(cfg: typeof config, logger: Logger): Promise<Cli
 
 /**
  * Creates and connects to Redis client
- * @param {typeof config} cfg configuration object
+ * @param {Config} cfg configuration object
  * @param {Logger} logger logger instance
  * @returns {ClientEntryOf<Redis>} Connected Redis client entry
  */
-function createRedisEntry(cfg: typeof config, logger: Logger): ClientEntryOf<Redis> {
+function createRedisEntry(cfg: Config, logger: Logger): ClientEntryOf<Redis> {
   const redisOptions: RedisOptions = {
     host: cfg.redisHost,
     port: cfg.redisPort,
@@ -163,11 +168,16 @@ function createRedisEntry(cfg: typeof config, logger: Logger): ClientEntryOf<Red
 
 /**
  * Creates and connects to Postgres client
- * @param {typeof config} cfg configuration object
+ * @param {Config} cfg configuration object
  * @param {Logger} logger logger instance
+ * @param {clientOverwrites} overwrites Optional overwrites to replace clients
  * @returns {ClientEntryOf<PgClient>} Connected Postgres client entry
  */
-export function createPostgresEntry(cfg: typeof config, logger: Logger): ClientEntryOf<PgClient> {
+function createPostgresEntry(
+  cfg: Config,
+  logger: Logger,
+  overwrites?: clientOverwrites,
+): ClientEntryOf<PgClient> {
   logger.info(`Connecting to Postgres ${cfg.postgresDb}...`)
   const pool = new Pool({
     user: cfg.postgresUser,
@@ -177,7 +187,7 @@ export function createPostgresEntry(cfg: typeof config, logger: Logger): ClientE
   })
 
   return {
-    client: new PgClient(pool),
+    client: overwrites?.pg ? overwrites.pg(pool) : new PgClient(pool),
     disconnect: async () => {
       await pool.end()
       logger.info('Postgres client disconnected')
