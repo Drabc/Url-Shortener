@@ -4,10 +4,10 @@ import { FingerPrint, UserDTO } from '@application/dtos.js'
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { LoginUser } from '@application/use-cases/login-user.use-case.js'
 import { LogoutUser } from '@application/use-cases/logout-user.use-case.js'
-import { RefreshToken } from '@application/use-cases/refresh-token.use-case.js'
+import { RefreshTokenUseCase } from '@application/use-cases/refresh-token.use-case.js'
 import { CookieFormatter } from '@api/utils/cookie-formatter.js'
-import { respond } from '@api/utils/respond.js'
-import { AsyncResult, Err } from '@shared/result.js'
+import { respond, respondWithError } from '@api/utils/respond.js'
+import { AsyncResult } from '@shared/result.js'
 import { AnyError, errorFactory } from '@shared/errors.js'
 
 const REFRESH_TOKEN_COOKIE_NAME = 'refresh-token' as const
@@ -25,7 +25,7 @@ export class AuthController {
     private registerUser: RegisterUser,
     private loginUser: LoginUser,
     private logoutUser: LogoutUser,
-    private refreshToken: RefreshToken,
+    private refreshToken: RefreshTokenUseCase,
     private cookieFormatter: CookieFormatter,
     private isDev: boolean,
   ) {}
@@ -39,7 +39,6 @@ export class AuthController {
   async register(req: Request<unknown, void, UserDTO>, res: Response): Promise<void> {
     const userDto = req.body
     const result = await this.registerUser.exec(userDto)
-
     respond(res, result, () => res.status(201).send())
   }
 
@@ -95,11 +94,10 @@ export class AuthController {
   async logoutAll(req: Request, res: Response): AsyncResult<void, AnyError> {
     const userId = req.userId
     if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' })
-      return Err(errorFactory.app('InvalidAccessToken', 'unauthorized'))
+      return respondWithError(res, errorFactory.app('InvalidAccessToken', 'unauthorized'))
     }
-
-    return respond(res, await this.logoutUser.logoutAllSessions(userId), () => {
+    const logoutResult = await this.logoutUser.logoutAllSessions(userId)
+    return respond(res, logoutResult, () => {
       // Clear the refresh token cookie on this device too
       res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, this.getRefreshTokenCookieOptions())
       res.status(200).json({ message: 'Logged out from all devices successfully' })
@@ -117,8 +115,7 @@ export class AuthController {
     const presentedHex = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
     const presented = this.cookieFormatter.safeDecodeRefreshToken(presentedHex)
     if (!presented) {
-      res.status(401).json({ error: 'Invalid token' })
-      return Err(errorFactory.app('InvalidAccessToken', 'unauthorized'))
+      return respondWithError(res, errorFactory.app('InvalidAccessToken', 'unauthorized'))
     }
 
     const result = await this.refreshToken.exec(fp, presented)

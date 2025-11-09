@@ -21,7 +21,7 @@ type HandlerWrapper = (req: Request, res: Response, next: NextFunction) => Promi
 export const withUnitOfWork = (uow: IUnitOfWork, handler: Handler): HandlerWrapper => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      return await uow.run(() => handler(req, res, next))
+      await uow.run(() => handler(req, res, next))
     } catch (e) {
       next(e)
     }
