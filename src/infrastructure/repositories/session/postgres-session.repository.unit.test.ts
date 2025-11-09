@@ -23,7 +23,7 @@ function makeSession(attrs: { id?: string } = {}) {
     ttlSec: 3600,
     digest,
     ip: '127.0.0.1',
-    userAgent: 'jest',
+    userAgent: 'vitest',
   })
   if (attrs.id) (base as unknown as { id: string }).id = attrs.id
   return base
@@ -143,7 +143,7 @@ describe('PostgresSessionRepository', () => {
         now: new Date('2025-01-01T00:30:00.000Z'),
         ttlSec: 1800,
         ip: '127.0.0.1',
-        userAgent: 'jest2',
+        userAgent: 'vitest2',
         previousTokenId: (session.tokens[0] as RefreshToken).id || undefined,
       })
       ;(session as unknown as { _tokens: RefreshToken[] })._tokens.push(secondToken)

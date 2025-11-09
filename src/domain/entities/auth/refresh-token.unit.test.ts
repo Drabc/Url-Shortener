@@ -9,7 +9,7 @@ describe('RefreshToken', () => {
     now: new Date('2025-08-31T10:00:00.000Z'),
     ttlSec: 7200,
     ip: '198.51.100.10',
-    userAgent: 'jest-agent',
+    userAgent: 'vitest-agent',
     previousTokenId: 'sess-old',
   }
 

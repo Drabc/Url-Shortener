@@ -1,3 +1,5 @@
+import { Mocked } from 'vitest'
+
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { ShortUrl } from '@domain/entities/short-url.js'
 
@@ -5,7 +7,7 @@ type Success<T> = T & { ok: true }
 type Failure<T> = Exclude<T, { ok: true }>
 
 describe('ShortUrl Entity', () => {
-  let validUrl: jest.Mocked<ValidUrl>
+  let validUrl: Mocked<ValidUrl>
   let code: string
 
   beforeEach(() => {

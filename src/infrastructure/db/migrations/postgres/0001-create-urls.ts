@@ -21,7 +21,7 @@ class CreateUrlsTableMigration extends Migration<PgClient> {
    */
   async up(): Promise<void> {
     // Enable required extension for gen_random_uuid if desired
-    await this.ctx.query('CREATE EXTENSION IF NOT EXISTs pgcrypto')
+    await this.ctx.query('CREATE EXTENSION IF NOT EXISTS pgcrypto')
 
     await this.ctx.query(`
       CREATE TABLE IF NOT EXISTS app.short_urls (

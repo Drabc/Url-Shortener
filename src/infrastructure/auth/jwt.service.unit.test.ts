@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi, Mocked } from 'vitest'
 import type { CryptoKey, JWTPayload } from 'jose'
 import { Logger } from 'pino'
 
@@ -100,7 +100,7 @@ describe('JwtService', () => {
   const fixedNow = new Date('2025-01-01T00:00:00.000Z')
 
   const clock = { now: () => fixedNow }
-  const logger = { warn: vi.fn() } as unknown as jest.Mocked<Logger>
+  const logger = { warn: vi.fn() } as unknown as Mocked<Logger>
   const idGen = vi.fn(() => id) as unknown as typeof crypto.randomUUID
   const verifier = vi.fn()
   const jwtService = new JwtService(

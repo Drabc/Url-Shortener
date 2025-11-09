@@ -10,7 +10,7 @@ describe('Session', () => {
     now: new Date('2025-08-31T12:00:00.000Z'),
     ttlSec: 3600,
     ip: '203.0.113.5',
-    userAgent: 'jest-test',
+    userAgent: 'vitest-test',
     plainSecret: PlainRefreshSecret.fromBytes(Buffer.from('abcdefghijklmnop')), // 16 bytes
     expectedDigest: Buffer.from('abc123digest'),
   }

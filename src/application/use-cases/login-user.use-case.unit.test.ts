@@ -34,7 +34,7 @@ describe('LoginUser.exec()', () => {
   const fingerPrint: FingerPrint = {
     clientId: 'client-1',
     ip: '127.0.0.1',
-    rawUa: 'jest-test',
+    rawUa: 'vitest-test',
   }
 
   // Pre-create a valid email and user using Success/Failure narrowing (no throws)
