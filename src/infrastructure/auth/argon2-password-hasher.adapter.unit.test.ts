@@ -4,6 +4,7 @@ import {
   Argon2PasswordHasher,
   Argon2Like,
 } from '@infrastructure/auth/argon2-password-hasher.adapter.js'
+import { Password } from '@domain/value-objects/password.js'
 
 describe('Argon2PasswordHasher', () => {
   const pepper = 'super-secret-pepper'
@@ -22,9 +23,14 @@ describe('Argon2PasswordHasher', () => {
     it('delegates to argon2.hash with pepper as secret', async () => {
       lib.hash.mockResolvedValue('$argon2id$hashvalue')
 
-      const result = await hasher.hash('plain-pass')
+      const pwdRes = Password.create('Plain!Pass')
+      expect(pwdRes.ok).toBe(true)
+      const password = pwdRes.ok ? pwdRes.value : undefined
+      if (!password) throw new Error('Password creation failed in test setup')
 
-      expect(lib.hash).toHaveBeenCalledWith('plain-pass', {
+      const result = await hasher.hash(password)
+
+      expect(lib.hash).toHaveBeenCalledWith('Plain!Pass', {
         secret: Buffer.from(pepper),
       })
       expect(result).toBe('$argon2id$hashvalue')
@@ -32,8 +38,12 @@ describe('Argon2PasswordHasher', () => {
 
     it('propagates errors from underlying hash', async () => {
       lib.hash.mockRejectedValue(new Error('boom'))
+      const pwdRes = Password.create('Plain!Pass')
+      expect(pwdRes.ok).toBe(true)
+      const password = pwdRes.ok ? pwdRes.value : undefined
+      if (!password) throw new Error('Password creation failed in test setup')
 
-      await expect(hasher.hash('plain')).rejects.toThrow('boom')
+      await expect(hasher.hash(password)).rejects.toThrow('boom')
     })
   })
 

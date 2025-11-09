@@ -1,6 +1,7 @@
 import * as argon2 from 'argon2'
 
 import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
+import { Password } from '@domain/value-objects/password.js'
 
 export type Argon2Like = Pick<typeof argon2, 'hash' | 'verify'>
 
@@ -21,11 +22,11 @@ export class Argon2PasswordHasher implements IPasswordHasher {
 
   /**
    * Hashes a plain password using Argon2id with a secret pepper.
-   * @param {string} plain - The plain password to hash.
+   * @param {Password} password - The validated password to hash.
    * @returns {Promise<string>} A promise that resolves to the hashed password string.
    */
-  public hash(plain: string): Promise<string> {
-    return this.lib.hash(plain, { secret: this.pepper })
+  public hash(password: Password): Promise<string> {
+    return this.lib.hash(password.value, { secret: this.pepper })
   }
 
   /**

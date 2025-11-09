@@ -7,6 +7,7 @@ import { IUserRepository } from '@domain/repositories/user.repository.interface.
 import { IPasswordHasher } from '@application/ports/password-hasher.port.js'
 import { Err, Ok } from '@shared/result.js'
 import { errorFactory } from '@shared/errors.js'
+import { Password } from '@domain/value-objects/password.js'
 
 type Failure<T> = Exclude<T, { ok: true }>
 
@@ -35,7 +36,7 @@ describe('RegisterUser Use Case', () => {
     password: 'P@ssword1',
   }
 
-  it('hashes password, creates user and saves it', async () => {
+  it('hashes password (Password VO), creates user and saves it', async () => {
     hasher.hash.mockResolvedValue('hashed')
     const now = new Date('2025-01-01T00:00:00.000Z')
     clock.now.mockReturnValue(now)
@@ -44,7 +45,10 @@ describe('RegisterUser Use Case', () => {
     const res = await useCase.exec(dto)
     expect(res.ok).toBe(true)
 
-    expect(hasher.hash).toHaveBeenCalledWith('P@ssword1')
+    expect(hasher.hash).toHaveBeenCalledTimes(1)
+    const pwdArg = hasher.hash.mock.calls[0][0]
+    expect(pwdArg).toBeInstanceOf(Password)
+    expect(pwdArg.value).toBe('P@ssword1')
     expect(repo.save).toHaveBeenCalledTimes(1)
     const savedUser = repo.save.mock.calls[0][0] as User
     expect(savedUser).toBeInstanceOf(User)
