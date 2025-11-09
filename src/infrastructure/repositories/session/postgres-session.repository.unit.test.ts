@@ -5,6 +5,7 @@ import { PgClient } from '@infrastructure/clients/pg-client.js'
 import { Session } from '@domain/entities/auth/session.js'
 import { RefreshToken } from '@domain/entities/auth/refresh-token.js'
 import { Digest } from '@domain/utils/token-digester.js'
+import { Ok } from '@shared/result.js'
 
 /**
  * Creates a new Session (via factory) and optionally patches the id for testing.
@@ -29,11 +30,11 @@ function makeSession(attrs: { id?: string } = {}) {
 }
 
 describe('PostgresSessionRepository', () => {
-  let pg: { findMany: Mock; query: Mock }
+  let pg: { findMany: Mock; insert: Mock }
   let repo: PostgresSessionRepository
 
   beforeEach(() => {
-    pg = { findMany: vi.fn(), query: vi.fn() }
+    pg = { findMany: vi.fn(), insert: vi.fn() }
     repo = new PostgresSessionRepository(pg as unknown as PgClient)
   })
 
@@ -146,22 +147,23 @@ describe('PostgresSessionRepository', () => {
         previousTokenId: (session.tokens[0] as RefreshToken).id || undefined,
       })
       ;(session as unknown as { _tokens: RefreshToken[] })._tokens.push(secondToken)
-
-      // First query returns the session id
-      pg.query.mockResolvedValueOnce({ rows: [{ id: 'sess-new', inserted: true }] })
-      // Second query for tokens
-      pg.query.mockResolvedValueOnce({ rows: [] })
+      // First insert returns the session id
+      pg.insert.mockResolvedValueOnce(Ok([{ id: 'sess-new', inserted: true }]))
+      // Second insert for tokens
+      pg.insert.mockResolvedValueOnce(
+        Ok([
+          { id: 'rt-1', inserted: true },
+          { id: 'rt-2', inserted: true },
+        ]),
+      )
 
       const res = await repo.save(session)
       expect(res.ok).toBe(true)
-
-      expect(pg.query).toHaveBeenCalledTimes(2)
-      const firstCall = pg.query.mock.calls[0]
+      expect(pg.insert).toHaveBeenCalledTimes(2)
+      const firstCall = pg.insert.mock.calls[0]
       expect(firstCall[0]).toContain('insert into auth.sessions')
-
-      const secondCall = pg.query.mock.calls[1]
+      const secondCall = pg.insert.mock.calls[1]
       expect(secondCall[0]).toContain('insert into auth.refresh_tokens')
-      // Payload is argument index 1 => [payload]
       const payloadJson = secondCall[1][0]
       const parsed = JSON.parse(payloadJson)
       expect(Array.isArray(parsed)).toBe(true)
@@ -187,14 +189,13 @@ describe('PostgresSessionRepository', () => {
     it('updates existing session (xmax != 0 path)', async () => {
       const session = makeSession()
       // simulate pg returning update (inserted=false)
-      pg.query.mockResolvedValueOnce({ rows: [{ id: 'sess-existing', inserted: false }] })
-      pg.query.mockResolvedValueOnce({ rows: [] })
+      pg.insert.mockResolvedValueOnce(Ok([{ id: 'sess-existing', inserted: false }]))
+      pg.insert.mockResolvedValueOnce(Ok([]))
 
       const res = await repo.save(session)
       expect(res.ok).toBe(true)
-
-      expect(pg.query).toHaveBeenCalledTimes(2)
-      expect(pg.query.mock.calls[0][0]).toContain('on conflict (id) do update')
+      expect(pg.insert).toHaveBeenCalledTimes(2)
+      expect(pg.insert.mock.calls[0][0]).toContain('on conflict (id) do update')
     })
   })
 })

@@ -19,7 +19,7 @@ const PG_ERROR = {
  */
 export class PgClient {
   constructor(
-    private pool: Pool,
+    protected pool: Pool,
     private sqlRunnerFetcher: SqlRunnerFetcher = getRunner,
   ) {}
 
@@ -31,7 +31,7 @@ export class PgClient {
    * @returns {Promise<T | null>} The first row if present, otherwise null.
    */
   async findOne<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<T | null> {
-    const result = await this.pool.query<T>(query, values)
+    const result = await this.query<T>(query, values)
     return result.rows[0] || null
   }
 
@@ -43,7 +43,7 @@ export class PgClient {
    * @returns {Promise<T[]>} Array of rows (empty if none).
    */
   async findMany<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<T[]> {
-    const result = await this.pool.query<T>(query, values)
+    const result = await this.query<T>(query, values)
     return result.rows
   }
 
@@ -53,13 +53,15 @@ export class PgClient {
    * @param {unknown[]} values Parameter values for the query.
    * @returns {AsyncResult<void, InsertError>} void or InsertError on failure.
    */
-  async insert(query: string, values: unknown[]): AsyncResult<void, InsertError> {
+  async insert<T = void>(query: string, values: unknown[]): AsyncResult<T[], InsertError> {
     try {
-      const result = await this.pool.query(query, values)
+      const result = await this.query(query, values)
 
       if (result.rowCount === 0) {
         return Err(errorFactory.infra('UniqueViolation', 'duplicate'))
       }
+
+      return Ok(result.rows as T[])
     } catch (err) {
       const e = err as { code?: string; detail?: string }
 
@@ -71,7 +73,6 @@ export class PgClient {
         errorFactory.infra('UnableToInsert', 'unknown', { cause: e.detail ?? String(err) }),
       )
     }
-    return Ok(undefined)
   }
 
   /**
@@ -81,7 +82,10 @@ export class PgClient {
    * @param {unknown[]} [values] Optional parameter values for the query.
    * @returns {Promise<QueryResult<T>>} Full pg QueryResult containing rows and metadata.
    */
-  query<T extends QueryResultRow>(query: string, values?: unknown[]): Promise<QueryResult<T>> {
+  async query<T extends QueryResultRow>(
+    query: string,
+    values?: unknown[],
+  ): Promise<QueryResult<T>> {
     const runner = this.sqlRunnerFetcher() ?? this.pool
     return runner.query(query, values) as Promise<QueryResult<T>>
   }

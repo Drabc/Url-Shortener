@@ -1,5 +1,6 @@
 import { Session } from '@domain/entities/auth/session.js'
 import { SessionError } from '@domain/errors/repository.error.js'
+import { InsertError } from '@infrastructure/errors/index.js'
 import { AsyncResult } from '@shared/result.js'
 
 export interface ISessionRepository {
@@ -27,5 +28,5 @@ export interface ISessionRepository {
    * @param {Session} session The session aggregate to persist.
    * @returns {AsyncResult<void, SessionError>} Ok(void) on success or Err(SessionError) on failure.
    */
-  save(session: Session): AsyncResult<void, SessionError>
+  save(session: Session): AsyncResult<void, SessionError | InsertError>
 }
