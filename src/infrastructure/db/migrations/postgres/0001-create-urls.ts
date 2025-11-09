@@ -21,23 +21,23 @@ class CreateUrlsTableMigration extends Migration<PgClient> {
    */
   async up(): Promise<void> {
     // Enable required extension for gen_random_uuid if desired
-    await this.ctx.query('create extension if not exists pgcrypto')
+    await this.ctx.query('CREATE EXTENSION IF NOT EXISTS pgcrypto')
 
     await this.ctx.query(`
-      create table if not exists app.short_urls (
-        id uuid primary key default gen_random_uuid(),
-        code text not null unique,
-        original_url text not null,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now()
+      CREATE TABLE IF NOT EXISTS app.short_urls (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        code text NOT NULL UNIQUE,
+        original_url text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT NOW(),
+        updated_at timestamptz NOT NULL DEFAULT NOW()
       )
     `)
 
     await this.ctx.query(`
-      create trigger trg_short_urls_touch_updated_at
-      before update on app.short_urls
-      for each row
-      execute function app.trg_touch_updated_at(i)
+      CREATE TRIGGER trg_short_urls_touch_updated_at
+      BEFORE UPDATE ON app.short_urls
+      FOR EACH ROW
+      EXECUTE FUNCTION app.trg_touch_updated_at(i)
     `)
   }
 }

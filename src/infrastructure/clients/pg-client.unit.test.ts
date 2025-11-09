@@ -1,3 +1,4 @@
+import { vi, Mock, Mocked } from 'vitest'
 import type { Pool, PoolClient } from 'pg'
 
 import { PgClient } from '@infrastructure/clients/pg-client.js'
@@ -9,12 +10,12 @@ import {
 type Failure<T> = Exclude<T, { ok: true }>
 
 describe('PgClient', () => {
-  let pool: { query: jest.Mock; connect: jest.Mock }
+  let pool: { query: Mock; connect: Mock }
   let client: PgClient
 
   beforeEach(() => {
-    pool = { query: jest.fn(), connect: jest.fn() }
-    client = new PgClient(pool as unknown as jest.Mocked<Pool>)
+    pool = { query: vi.fn(), connect: vi.fn() }
+    client = new PgClient(pool as unknown as Mocked<Pool>)
   })
 
   describe('findOne', () => {
@@ -82,10 +83,10 @@ describe('PgClient', () => {
   })
 
   describe('transactions', () => {
-    let mockPgClient: { query: jest.Mock; release: jest.Mock }
+    let mockPgClient: { query: Mock; release: Mock }
 
     beforeEach(() => {
-      mockPgClient = { query: jest.fn(), release: jest.fn() }
+      mockPgClient = { query: vi.fn(), release: vi.fn() }
       pool.connect.mockResolvedValue(mockPgClient as unknown as PoolClient)
     })
 

@@ -10,7 +10,7 @@ describe('Session', () => {
     now: new Date('2025-08-31T12:00:00.000Z'),
     ttlSec: 3600,
     ip: '203.0.113.5',
-    userAgent: 'jest-test',
+    userAgent: 'vitest-test',
     plainSecret: PlainRefreshSecret.fromBytes(Buffer.from('abcdefghijklmnop')), // 16 bytes
     expectedDigest: Buffer.from('abc123digest'),
   }
@@ -91,12 +91,18 @@ describe('Session', () => {
       expect(s.status).toBe('revoked')
       expect(s.endedAt?.toISOString()).toBe(when.toISOString())
       expect(s.endReason).toBe('logout')
+      // Active refresh token should also be marked revoked
+      const token = s.tokens[0] as RefreshToken
+      expect(token.status).toBe('revoked')
       const later = new Date('2025-08-31T12:20:00.000Z')
       s.revoke(later, 'ignored')
       expect(s.endedAt?.toISOString()).toBe(when.toISOString())
       expect(s.endReason).toBe('logout')
+      // Token remains revoked after subsequent no-op revoke
+      expect(token.status).toBe('revoked')
     })
   })
+
   describe('rotateToken()', () => {
     const makeToken = (overrides: Partial<Parameters<typeof RefreshToken.hydrate>[0]> = {}) => {
       return RefreshToken.hydrate({

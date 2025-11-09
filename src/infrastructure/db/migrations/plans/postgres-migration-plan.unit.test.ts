@@ -1,3 +1,5 @@
+import { Mock, vi } from 'vitest'
+
 import { PgClient } from '@infrastructure/clients/pg-client.js'
 import { PostgresMigrationPlan } from '@infrastructure/db/migrations/plans/postgres-migration-plan.js'
 import { Migration } from '@infrastructure/db/migrations/types.js'
@@ -8,17 +10,17 @@ import {
 } from '@infrastructure/errors/migration.error.js'
 
 describe('PostgresMigrationPlan', () => {
-  let client: { query: jest.Mock }
+  let client: { query: Mock }
   let plan: PostgresMigrationPlan
-  let migration: jest.Mocked<Migration<PgClient>>
+  let migration: Migration<PgClient>
 
   beforeEach(() => {
-    client = { query: jest.fn() }
+    client = { query: vi.fn() }
     plan = new PostgresMigrationPlan([], client as unknown as PgClient)
     migration = {
       id: '0001-create-urls',
-      up: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<Migration<PgClient>>
+      up: vi.fn().mockResolvedValue(undefined),
+    } as unknown as Migration<PgClient>
   })
 
   describe('displayName', () => {

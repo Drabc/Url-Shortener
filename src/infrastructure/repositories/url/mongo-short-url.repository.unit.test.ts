@@ -1,3 +1,4 @@
+import { vi, Mocked } from 'vitest'
 import { Collection, Db, Int32, MongoServerError, ObjectId } from 'mongodb'
 
 import { ShortUrl } from '@domain/entities/short-url.js'
@@ -10,25 +11,25 @@ import {
 } from '@infrastructure/repositories/url/mongo-short-url.repository.js'
 
 describe('MongoShortUrlRepository', () => {
-  let db: jest.Mocked<Db>
-  let collection: jest.Mocked<Collection<MongoShortUrl>>
+  let db: Mocked<Db>
+  let collection: Mocked<Collection<MongoShortUrl>>
   let repo: MongoShortUrlRepository
 
   beforeEach(() => {
     collection = {
-      findOne: jest.fn(),
-      insertOne: jest.fn(),
-    } as unknown as jest.Mocked<Collection<MongoShortUrl>>
+      findOne: vi.fn(),
+      insertOne: vi.fn(),
+    } as unknown as Mocked<Collection<MongoShortUrl>>
 
     db = {
-      collection: jest.fn().mockReturnValue(collection),
-    } as unknown as jest.Mocked<Db>
+      collection: vi.fn().mockReturnValue(collection),
+    } as unknown as Mocked<Db>
 
     repo = new MongoShortUrlRepository(db)
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('findByCode()', () => {

@@ -8,6 +8,11 @@ export const toHttp = (error: AnyError): { status: number; body: JsonErrorFormat
         status: 401,
         body: formatError(error.type, 401, error.message ?? 'Authentication Error'),
       }
+    case 'not_found':
+      return {
+        status: 404,
+        body: formatError(error.type, 404, error.message ?? 'Resource Not Found'),
+      }
     case 'duplicate':
     case 'conflict':
       return { status: 409, body: formatError(error.type, 409, error.message ?? 'Conflict Error') }

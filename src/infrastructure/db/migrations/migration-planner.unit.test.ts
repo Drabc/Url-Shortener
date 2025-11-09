@@ -1,3 +1,4 @@
+import { vi, Mocked, Mock } from 'vitest'
 import { Collection, Db, Document, FindCursor, WithId } from 'mongodb'
 
 import { MigrationPlanner } from '@infrastructure/db/migrations/migration-planner.js'
@@ -10,12 +11,12 @@ import { PersistenceConnections } from '@infrastructure/clients/persistence-conn
 
 describe('MigrationPlanner', () => {
   let planner: MigrationPlanner
-  let fsLike: { readdirSync: jest.Mock; readFileSync: jest.Mock }
-  let importerLike: jest.Mock
-  let client: jest.Mocked<Db>
-  let collection: jest.Mocked<Collection>
-  let cursor: jest.Mocked<FindCursor>
-  let connections: jest.Mocked<PersistenceConnections>
+  let fsLike: { readdirSync: Mock; readFileSync: Mock }
+  let importerLike: Mock
+  let client: Mocked<Db>
+  let collection: Mocked<Collection>
+  let cursor: Mocked<FindCursor>
+  let connections: Mocked<PersistenceConnections>
 
   beforeEach(() => {
     // Fake directory entries
@@ -25,41 +26,41 @@ describe('MigrationPlanner', () => {
     ]
 
     fsLike = {
-      readdirSync: jest.fn().mockReturnValue(files),
-      readFileSync: jest.fn(),
+      readdirSync: vi.fn().mockReturnValue(files),
+      readFileSync: vi.fn(),
     }
 
-    importerLike = jest.fn(async () => ({
+    importerLike = vi.fn(async () => ({
       default: (_client: Db, id: string) =>
         ({
           id,
-          up: jest.fn().mockResolvedValue(undefined),
+          up: vi.fn().mockResolvedValue(undefined),
         }) as unknown as Migration<Db>,
     }))
 
     cursor = {
-      sort: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      next: jest.fn().mockResolvedValue(null),
-    } as unknown as jest.Mocked<FindCursor<WithId<Document>>>
+      sort: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      next: vi.fn().mockResolvedValue(null),
+    } as unknown as Mocked<FindCursor<WithId<Document>>>
 
-    collection = jest.mocked({
-      find: jest.fn().mockReturnValue(cursor),
+    collection = vi.mocked({
+      find: vi.fn().mockReturnValue(cursor),
     } as unknown as Collection)
 
     client = {
-      collection: jest.fn().mockReturnValue(collection),
-    } as unknown as jest.Mocked<Db>
+      collection: vi.fn().mockReturnValue(collection),
+    } as unknown as Mocked<Db>
     connections = {
       clientKeys: ['mongo'],
-      get: jest.fn().mockReturnValue(client),
-    } as unknown as jest.Mocked<PersistenceConnections>
+      get: vi.fn().mockReturnValue(client),
+    } as unknown as Mocked<PersistenceConnections>
 
     planner = new MigrationPlanner('/fake/path', fsLike, importerLike)
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('plans()', () => {
@@ -98,8 +99,8 @@ describe('MigrationPlanner', () => {
     it('returns no plans when only unsupported clients are active', async () => {
       const connections = {
         clientKeys: ['redis'],
-        get: jest.fn(),
-      } as unknown as jest.Mocked<PersistenceConnections>
+        get: vi.fn(),
+      } as unknown as Mocked<PersistenceConnections>
 
       const plans = await planner.plans(connections)
 

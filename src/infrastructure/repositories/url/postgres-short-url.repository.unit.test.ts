@@ -1,3 +1,5 @@
+import { vi, Mock } from 'vitest'
+
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
@@ -18,11 +20,11 @@ type Success<T> = T & { ok: true }
 type Failure<T> = Exclude<T, { ok: true }>
 
 describe('PostgresShortUrlRepository', () => {
-  let pg: { findOne: jest.Mock; insert: jest.Mock }
+  let pg: { findOne: Mock; insert: Mock }
   let repo: PostgresShortUrlRepository
 
   beforeEach(() => {
-    pg = { findOne: jest.fn(), insert: jest.fn() }
+    pg = { findOne: vi.fn(), insert: vi.fn() }
     repo = new PostgresShortUrlRepository(pg as unknown as PgClient)
   })
 

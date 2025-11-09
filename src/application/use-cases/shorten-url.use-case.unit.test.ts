@@ -1,3 +1,5 @@
+import { vi, Mocked } from 'vitest'
+
 import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
 import { Ok, Err } from '@shared/result.js'
@@ -6,16 +8,16 @@ import { errorFactory } from '@shared/errors.js'
 /**
  * Unit tests for ShortenUrl use case.
  */
-jest.mock('nanoid', () => ({
-  customAlphabet: jest.fn(() => {
-    return jest.fn(() => mockCodes.shift() || 'fallback')
+vi.mock('nanoid', () => ({
+  customAlphabet: vi.fn(() => {
+    return vi.fn(() => mockCodes.shift() || 'fallback')
   }),
 }))
 
 let mockCodes: string[] = []
 
 describe('shortenUrl()', () => {
-  let repo: jest.Mocked<IShortUrlRepository>
+  let repo: Mocked<IShortUrlRepository>
   let useCase: ShortenUrl
   const baseUrl = 'http://short'
   const userId = 'user-123'
@@ -23,9 +25,9 @@ describe('shortenUrl()', () => {
   beforeEach(() => {
     mockCodes = []
     repo = {
-      save: jest.fn(),
-      findByCode: jest.fn(),
-    } as unknown as jest.Mocked<IShortUrlRepository>
+      save: vi.fn(),
+      findByCode: vi.fn(),
+    }
     useCase = new ShortenUrl(repo, baseUrl)
   })
 

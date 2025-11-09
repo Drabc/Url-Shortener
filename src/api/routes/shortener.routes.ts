@@ -38,7 +38,7 @@ export function createShortenerRouter(controller: ShortenerController): Router {
    *              properties:
    *                shortUrl:
    *                  type: string
-   *      '400':
+   *      '422':
    *        description: Invalid URL format
    *        content:
    *          application/json:

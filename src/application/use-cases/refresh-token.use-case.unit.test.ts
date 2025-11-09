@@ -1,3 +1,5 @@
+import { vi, Mocked } from 'vitest'
+
 import { IRefreshSecretGenerator } from '@application/ports/refresh-secret-generator.js'
 import { IJwtIssuer } from '@application/ports/jwt-issuer.js'
 import { Clock } from '@application/shared/clock.js'
@@ -7,15 +9,15 @@ import { ITokenDigester } from '@domain/utils/token-digester.js'
 import { Session } from '@domain/entities/auth/session.js'
 import { Ok, Err } from '@shared/result.js'
 
-import { RefreshToken as RefreshTokenUC } from './refresh-token.use-case.js'
+import { RefreshTokenUseCase as RefreshTokenUC } from './refresh-token.use-case.js'
 
 describe('RefreshToken.exec()', () => {
   let uc: RefreshTokenUC
-  let sessionRepo: jest.Mocked<ISessionRepository>
-  let digester: jest.Mocked<ITokenDigester>
-  let secretGen: jest.Mocked<IRefreshSecretGenerator>
-  let jwtIssuer: jest.Mocked<IJwtIssuer>
-  let clock: jest.Mocked<Clock>
+  let sessionRepo: Mocked<ISessionRepository>
+  let digester: Mocked<ITokenDigester>
+  let secretGen: Mocked<IRefreshSecretGenerator>
+  let jwtIssuer: Mocked<IJwtIssuer>
+  let clock: Mocked<Clock>
 
   const userId = 'user-1'
   const fp: FingerPrint = { clientId: 'desktop', ip: '1.1.1.1', rawUa: 'UA' }
@@ -27,19 +29,19 @@ describe('RefreshToken.exec()', () => {
 
   beforeEach(() => {
     sessionRepo = {
-      findActiveByUserId: jest.fn(),
-      findSessionForRefresh: jest.fn(),
-      save: jest.fn(),
+      findActiveByUserId: vi.fn(),
+      findSessionForRefresh: vi.fn(),
+      save: vi.fn(),
     }
     digester = {
-      digest: jest
+      digest: vi
         .fn()
         .mockImplementation((buf: Buffer) => (buf === presented ? presentedDigest : newDigest)),
-      verify: jest.fn().mockReturnValue(true),
+      verify: vi.fn().mockReturnValue(true),
     }
-    secretGen = { generate: jest.fn().mockReturnValue(newSecret) }
-    jwtIssuer = { issue: jest.fn().mockResolvedValue('access-jwt') }
-    clock = { now: jest.fn().mockReturnValue(now) }
+    secretGen = { generate: vi.fn().mockReturnValue(newSecret) }
+    jwtIssuer = { issue: vi.fn().mockResolvedValue('access-jwt') }
+    clock = { now: vi.fn().mockReturnValue(now) }
     uc = new RefreshTokenUC(sessionRepo, digester, secretGen, jwtIssuer, clock, 32)
   })
 
@@ -54,7 +56,7 @@ describe('RefreshToken.exec()', () => {
       clientId: fp.clientId,
       status: 'active',
       tokens: [],
-      rotateToken: jest.fn(() => Ok(undefined)),
+      rotateToken: vi.fn(() => Ok(undefined)),
       ...overrides,
     } as unknown as Session
   }
@@ -97,7 +99,7 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates expired session', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() =>
+      rotateToken: vi.fn(() =>
         Err({
           kind: 'domain',
           type: 'InvalidSession',
@@ -118,7 +120,7 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates reuse detected', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() =>
+      rotateToken: vi.fn(() =>
         Err({
           kind: 'domain',
           type: 'InvalidSession',
@@ -137,7 +139,7 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates no active token', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() =>
+      rotateToken: vi.fn(() =>
         Err({
           kind: 'domain',
           type: 'InvalidSession',
@@ -156,7 +158,7 @@ describe('RefreshToken.exec()', () => {
 
   it('returns domain error when rotateResult indicates session not active', async () => {
     const session = makeSession({
-      rotateToken: jest.fn(() =>
+      rotateToken: vi.fn(() =>
         Err({
           kind: 'domain',
           type: 'InvalidSession',

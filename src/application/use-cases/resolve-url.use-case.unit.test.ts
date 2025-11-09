@@ -1,3 +1,5 @@
+import { vi, Mocked } from 'vitest'
+
 import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
 import { Ok, Err } from '@shared/result.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
@@ -9,14 +11,14 @@ type Success<T> = T & { ok: true }
 type Failure<T> = Exclude<T, { ok: true }>
 
 describe('resolveUrl()', () => {
-  let repo: jest.Mocked<IShortUrlRepository>
+  let repo: Mocked<IShortUrlRepository>
   let useCase: ResolveUrl
 
   beforeEach(() => {
     repo = {
-      findByCode: jest.fn(),
-      save: jest.fn(),
-    } as unknown as jest.Mocked<IShortUrlRepository>
+      findByCode: vi.fn(),
+      save: vi.fn(),
+    } as unknown as Mocked<IShortUrlRepository>
     useCase = new ResolveUrl(repo)
   })
 
@@ -45,7 +47,7 @@ describe('resolveUrl()', () => {
 
   it('propagates underlying repository Err', async () => {
     const repoErr = Err(errorFactory.domain('InvalidValue', 'validation'))
-    repo.findByCode.mockResolvedValue(repoErr as unknown as ReturnType<typeof repo.findByCode>)
+    repo.findByCode.mockResolvedValue(repoErr)
     const res = await useCase.resolveUrl('bad')
     expect(res.ok).toBe(false)
     const failure = res as Failure<typeof res>

@@ -14,8 +14,9 @@
     },
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true
+    "declaration": true,
+    "types": ["vitest/globals"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/**/*"],
   "exclude": ["node_modules"]
 }

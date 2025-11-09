@@ -267,6 +267,9 @@ export class Session extends BaseEntity {
     if (this._status === STATUSES.revoked) {
       return
     }
+
+    const activeToken = this._tokens.find((t) => t.isActive())
+    activeToken?.markRevoked()
     this._status = STATUSES.revoked
     this._endedAt = now
     this._endReason = reason

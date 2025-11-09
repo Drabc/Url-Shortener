@@ -3,6 +3,7 @@ import { Session, SessionRehydrateArgs, SessionStatus } from '@domain/entities/a
 import { SessionError } from '@domain/errors/repository.error.js'
 import { ISessionRepository } from '@domain/repositories/session.repository.interface.js'
 import { PgClient } from '@infrastructure/clients/pg-client.js'
+import { InsertError } from '@infrastructure/errors/index.js'
 import { AsyncResult, Ok } from '@shared/result.js'
 
 type SessionAggregateRow = {
@@ -85,7 +86,7 @@ export class PostgresSessionRepository implements ISessionRepository {
    * @param {Session} session Session aggregate to persist.
    * @returns {AsyncResult<void, SessionError>} void or Session Error.
    */
-  async save(session: Session): AsyncResult<void, SessionError> {
+  async save(session: Session): AsyncResult<void, SessionError | InsertError> {
     // Add transaction
     const sessionQuery = `
       insert into auth.sessions (id, user_id, status, expires_at, last_used_at, client_id, ip, user_agent, ended_at, end_reason)
@@ -100,7 +101,7 @@ export class PostgresSessionRepository implements ISessionRepository {
       returning id, (xmax = 0) as inserted
     `
 
-    const { rows } = await this.client.query(sessionQuery, [
+    const sessionInsertResult = await this.client.insert<{ id: string }>(sessionQuery, [
       session.id,
       session.userId,
       session.status,
@@ -113,56 +114,58 @@ export class PostgresSessionRepository implements ISessionRepository {
       session.endReason,
     ])
 
-    const refreshTokenQuery = `
-      with input as (
-        select * from jsonb_to_recordset($1::jsonb) as t(
-          id text,
-          session_id uuid,
-          user_id uuid,
-          digest_value text,
-          digest_algo text,
-          status auth.refresh_status,
-          previous_token_id uuid,
-          issued_at timestamptz,
-          last_used_at timestamptz,
-          ip inet,
-          user_agent text
+    return sessionInsertResult.andThenAsync(async (rows) => {
+      const sessionRow = rows[0]
+
+      const refreshTokenQuery = `
+        with input as (
+          select * from jsonb_to_recordset($1::jsonb) as t(
+            id text,
+            session_id uuid,
+            user_id uuid,
+            digest_value text,
+            digest_algo text,
+            status auth.refresh_status,
+            previous_token_id uuid,
+            issued_at timestamptz,
+            last_used_at timestamptz,
+            ip inet,
+            user_agent text
+          )
         )
+        insert into auth.refresh_tokens (id, session_id, user_id, hash, hash_algo, status, prev_token, issued_at, last_used_at, ip, user_agent)
+        select COALESCE(NULLIF(id, '')::uuid, gen_random_uuid()), session_id, user_id,
+        decode(digest_value, 'base64'), digest_algo, status, previous_token_id, issued_at, last_used_at,
+        ip, user_agent
+        from input
+        on conflict (id) do update
+        set status = excluded.status,
+            prev_token = excluded.prev_token,
+            last_used_at = excluded.last_used_at
+        where auth.refresh_tokens.session_id = excluded.session_id
+        returning id, (xmax = 0) as inserted
+      `
+
+      const payload = JSON.stringify(
+        session.tokens.map((token) => {
+          return {
+            id: token.id,
+            session_id: sessionRow.id,
+            user_id: token.userId,
+            digest_value: token.digest.value.toString('base64'),
+            digest_algo: token.digest.algo,
+            status: token.status,
+            previous_token_id: token.previousTokenId,
+            issued_at: token.issuedAt,
+            last_used_at: token.lastUsedAt,
+            ip: token.ip,
+            user_agent: token.userAgent,
+          }
+        }),
       )
-      insert into auth.refresh_tokens (id, session_id, user_id, hash, hash_algo, status, prev_token, issued_at, last_used_at, ip, user_agent)
-      select COALESCE(NULLIF(id, '')::uuid, gen_random_uuid()), session_id, user_id,
-      decode(digest_value, 'base64'), digest_algo, status, previous_token_id, issued_at, last_used_at,
-      ip, user_agent
-      from input
-      on conflict (id) do update
-      set status = excluded.status,
-          prev_token = excluded.prev_token,
-          last_used_at = excluded.last_used_at
-      where auth.refresh_tokens.session_id = excluded.session_id
-      returning id, (xmax = 0) as inserted
-    `
 
-    const payload = JSON.stringify(
-      session.tokens.map((token) => {
-        return {
-          id: token.id,
-          session_id: rows[0].id,
-          user_id: token.userId,
-          digest_value: token.digest.value.toString('base64'),
-          digest_algo: token.digest.algo,
-          status: token.status,
-          previous_token_id: token.previousTokenId,
-          issued_at: token.issuedAt,
-          last_used_at: token.lastUsedAt,
-          ip: token.ip,
-          user_agent: token.userAgent,
-        }
-      }),
-    )
-
-    await this.client.query(refreshTokenQuery, [payload])
-
-    return Ok(undefined)
+      return (await this.client.insert(refreshTokenQuery, [payload])).andThen(() => Ok(undefined))
+    })
   }
 
   /**

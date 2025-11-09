@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 import { UnsupportedHmacAlgorithmError } from '@infrastructure/errors/unsupported-hmac-algorithm.error.js'
 import { HmacTokenDigester } from '@infrastructure/auth/hmac-token-digester.js'
 
@@ -6,14 +8,14 @@ describe('HmacTokenDigester', () => {
   const algo = 'sha256'
   const mockedDigest = Buffer.from('digest-bytes', 'utf-8')
   const hmac = {
-    update: jest.fn().mockReturnThis(),
-    digest: jest.fn().mockReturnValue(mockedDigest),
+    update: vi.fn().mockReturnThis(),
+    digest: vi.fn().mockReturnValue(mockedDigest),
   }
-  const hmacFactory = jest.fn().mockReturnValue(hmac)
+  const hmacFactory = vi.fn().mockReturnValue(hmac)
   const digester = new HmacTokenDigester(secret, hmacFactory, algo)
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('digest()', () => {

@@ -2,8 +2,8 @@ import typescriptParser from '@typescript-eslint/parser'
 import typescriptPlugin from '@typescript-eslint/eslint-plugin'
 import importPlugin from 'eslint-plugin-import'
 import prettierPlugin from 'eslint-plugin-prettier'
-import jestPlugin from 'eslint-plugin-jest'
 import jsdocPlugin from 'eslint-plugin-jsdoc'
+import vitestPlugin from 'eslint-plugin-vitest'
 import stylistic from '@stylistic/eslint-plugin'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
@@ -28,7 +28,7 @@ export default defineConfig([
       '@stylistic': stylistic,
       import: importPlugin,
       prettier: prettierPlugin,
-      jest: jestPlugin,
+      vitest: vitestPlugin,
       jsdoc: jsdocPlugin,
     },
 
@@ -37,7 +37,7 @@ export default defineConfig([
       ...typescriptPlugin.configs.recommended.rules,
       ...importPlugin.configs.recommended.rules,
       ...prettierPlugin.configs.recommended.rules,
-      ...jestPlugin.configs.recommended.rules,
+      ...vitestPlugin.configs.recommended.rules,
       ...jsdocPlugin.configs.recommended.rules,
 
       // overrides

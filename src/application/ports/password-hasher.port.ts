@@ -1,4 +1,6 @@
+import { Password } from '@domain/value-objects/password.js'
+
 export interface IPasswordHasher {
-  hash(plain: string): Promise<string>
+  hash(password: Password): Promise<string>
   verify(plain: string, hash: string): Promise<boolean>
 }

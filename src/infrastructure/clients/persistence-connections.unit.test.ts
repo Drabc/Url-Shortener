@@ -1,3 +1,4 @@
+import { vi, Mock } from 'vitest'
 import type { Db } from 'mongodb'
 import type { Redis } from 'ioredis'
 import { Logger } from 'pino'
@@ -15,8 +16,8 @@ describe('PersistenceConnections', () => {
 
   beforeEach(() => {
     logger = {
-      info: jest.fn(),
-      error: jest.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
     } as unknown as Logger
   })
 
@@ -53,9 +54,9 @@ describe('PersistenceConnections', () => {
 
   describe('disconnectAll()', () => {
     it('disconnects all clients and logs errors without throwing', async () => {
-      const mongoDisconnect = jest.fn().mockResolvedValue(undefined)
+      const mongoDisconnect = vi.fn().mockResolvedValue(undefined)
       const redisDisconnectError = new Error('boom')
-      const redisDisconnect = jest.fn().mockRejectedValue(redisDisconnectError)
+      const redisDisconnect = vi.fn().mockRejectedValue(redisDisconnectError)
 
       const registry: ClientEntries = {
         mongo: {
@@ -77,7 +78,7 @@ describe('PersistenceConnections', () => {
 
       // Ensure an error was logged for the redis disconnect failure
       expect(logger.error).toHaveBeenCalled()
-      const [firstArg, message] = (logger.error as jest.Mock).mock.calls[0]
+      const [firstArg, message] = (logger.error as Mock).mock.calls[0]
       expect(message).toBe('Failed to disconnect client')
       expect(firstArg).toHaveProperty('key', 'redis')
       expect(firstArg).toHaveProperty('err')

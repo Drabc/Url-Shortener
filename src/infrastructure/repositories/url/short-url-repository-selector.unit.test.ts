@@ -1,3 +1,5 @@
+import { vi, Mocked } from 'vitest'
+
 import { ShortUrl } from '@domain/entities/short-url.js'
 import { ValidUrl } from '@domain/value-objects/valid-url.js'
 import { IShortUrlRepository } from '@domain/repositories/short-url.repository.interface.js'
@@ -11,18 +13,18 @@ type Failure<T> = Exclude<T, { ok: true }>
 
 describe('ShortUrlRepositorySelector', () => {
   let selector: ShortUrlRepositorySelector
-  let mockRedisRepository: jest.Mocked<IShortUrlRepository>
-  let mockPostgresRepository: jest.Mocked<IShortUrlRepository>
+  let mockRedisRepository: Mocked<IShortUrlRepository>
+  let mockPostgresRepository: Mocked<IShortUrlRepository>
 
   beforeEach(() => {
     mockRedisRepository = {
-      findByCode: jest.fn(),
-      save: jest.fn(),
+      findByCode: vi.fn(),
+      save: vi.fn(),
     }
 
     mockPostgresRepository = {
-      findByCode: jest.fn(),
-      save: jest.fn(),
+      findByCode: vi.fn(),
+      save: vi.fn(),
     }
 
     selector = new ShortUrlRepositorySelector(mockRedisRepository, mockPostgresRepository)
