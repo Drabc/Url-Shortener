@@ -60,7 +60,6 @@ describe('GET /:code (redirect)', () => {
 
   it('returns error payload for unknown code', async () => {
     const res = await request(app).get('/unknownCODE').redirects(0)
-    console.log(res.body)
     expect(res.status).toBe(404)
     expect(res.body).toMatchObject({
       error: {
