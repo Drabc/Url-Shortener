@@ -19,7 +19,7 @@ type RefreshResult = { accessToken: string; refreshToken: Buffer; expirationDate
  * @param {Clock} clock Time source used to timestamp rotation operations.
  * @param {number} sessionSecretLength Length (in bytes) for newly generated refresh token secrets.
  */
-export class RefreshToken {
+export class RefreshTokenUseCase {
   constructor(
     private readonly sessionRepo: ISessionRepository,
     private readonly tokenDigester: ITokenDigester,

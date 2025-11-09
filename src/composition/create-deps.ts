@@ -16,7 +16,7 @@ import { Argon2PasswordHasher } from '@infrastructure/auth/argon2-password-hashe
 import { RegisterUser } from '@application/use-cases/register-user.use-case.js'
 import { LoginUser } from '@application/use-cases/login-user.use-case.js'
 import { LogoutUser } from '@application/use-cases/logout-user.use-case.js'
-import { RefreshToken } from '@application/use-cases/refresh-token.use-case.js'
+import { RefreshTokenUseCase } from '@application/use-cases/refresh-token.use-case.js'
 import { HmacTokenDigester } from '@infrastructure/auth/hmac-token-digester.js'
 import { RefreshSecretGenerator } from '@infrastructure/auth/refresh-secret-generator.js'
 import { AuthController } from '@api/controllers/auth.controller.js'
@@ -99,7 +99,7 @@ export async function createDeps(
     config,
   )
   const logoutUser = new LogoutUser(sessionRepo, tokenDigester, clock)
-  const refreshTokenUC = new RefreshToken(
+  const refreshTokenUC = new RefreshTokenUseCase(
     sessionRepo,
     tokenDigester,
     new RefreshSecretGenerator(),

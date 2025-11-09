@@ -9,7 +9,7 @@ import { ITokenDigester } from '@domain/utils/token-digester.js'
 import { Session } from '@domain/entities/auth/session.js'
 import { Ok, Err } from '@shared/result.js'
 
-import { RefreshToken as RefreshTokenUC } from './refresh-token.use-case.js'
+import { RefreshTokenUseCase as RefreshTokenUC } from './refresh-token.use-case.js'
 
 describe('RefreshToken.exec()', () => {
   let uc: RefreshTokenUC
