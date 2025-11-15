@@ -13,6 +13,8 @@ import { createShortenerRouter } from '@api/routes/shortener.routes.js'
 import { createRedirectRoutes } from '@api/routes/redirect.routes.js'
 import { createAuthRouter } from '@api/routes/auth.routes.js'
 import { createMeRouter } from '@api/routes/me.routes.js'
+import { pickCreateUrl, pickGeneral } from '@api/middlewares/rate-limit/helpers.js'
+import { requireAuth } from '@api/middlewares/require-auth.middleware.js'
 
 const require = createRequire(import.meta.url)
 const swaggerUi = require('swagger-ui-express')
@@ -43,6 +45,9 @@ export function createHttpApp(deps: AppDependencies): Express {
   )
 
   // middlewares
+  const generalRateLimitMiddleware = deps.factories.rateLimitMiddlewareFactory(pickGeneral)
+  const urlRateLimitMiddleware = deps.factories.rateLimitMiddlewareFactory(pickCreateUrl)
+  const authMiddleware = requireAuth(deps.services.jwtService)
   app.use(cookieParser())
   app.use(express.json())
 
@@ -58,9 +63,14 @@ export function createHttpApp(deps: AppDependencies): Express {
 
   // Routes
   const apiRouter = createV1Router(
-    createShortenerRouter(deps.controllers.shortenerController),
-    createMeRouter(deps.controllers.shortenerController, deps.jwtService),
-    createAuthRouter(deps.controllers.authController, deps.uow, deps.jwtService),
+    createShortenerRouter(deps.controllers.shortenerController, urlRateLimitMiddleware),
+    createMeRouter(deps.controllers.shortenerController, authMiddleware, urlRateLimitMiddleware),
+    createAuthRouter(
+      deps.controllers.authController,
+      deps.uow,
+      authMiddleware,
+      generalRateLimitMiddleware,
+    ),
   )
 
   const redirectRouter = createRedirectRoutes(deps.controllers.shortenerController)

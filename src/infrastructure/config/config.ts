@@ -56,7 +56,8 @@ const cfg = {
   mongoUsername: env.MONGO_INITDB_ROOT_USERNAME,
   mongoPassword: env.MONGO_INITDB_ROOT_PASSWORD,
   mongoDb: env.MONGO_DB,
-  isDev: env.NODE_ENV !== 'production',
+  isNonProd: env.NODE_ENV !== 'production',
+  isTest: env.NODE_ENV === 'test',
   rootDir: process.cwd(), // Can be replaced by a more robust solution
   clientTypes: env.CLIENT_TYPES,
   migrationsPath: join(process.cwd(), env.MIGRATIONS_PATH),

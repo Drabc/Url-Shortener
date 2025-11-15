@@ -17,6 +17,7 @@ import {
   DuplicateClientRegistrationError,
   ClientDisconnectError,
 } from '@infrastructure/errors/clients.error.js'
+import { createRedisRateLimitStore } from '@infrastructure/clients/redis-rate-limit-store.js'
 
 type clientOverwrites = {
   pg: (pool: Pool) => PgClient
@@ -107,6 +108,14 @@ export async function createPersistenceConnections(
     }
   }
 
+  try {
+    // Default Clients
+    registry['rate_limit'] = createRateLimitClient(cfg, logger)
+  } catch (e) {
+    const details = e instanceof Error ? e.message : String(e)
+    throw new ClientInitializationError('rate_limit', details)
+  }
+
   return new PersistenceConnections(logger, registry)
 }
 
@@ -150,6 +159,7 @@ function createRedisEntry(cfg: Config, logger: Logger): ClientEntryOf<Redis> {
     port: cfg.redisPort,
     password: cfg.redisPassword,
     username: cfg.redisUsername,
+    db: cfg.isTest ? 14 : 0, // Use separate DB for tests
   }
 
   logger.info('Connecting to Redis...')
@@ -158,6 +168,26 @@ function createRedisEntry(cfg: Config, logger: Logger): ClientEntryOf<Redis> {
   const disconnect = async () => {
     await client.quit()
     logger.info('Redis client disconnected')
+  }
+
+  return {
+    client,
+    disconnect,
+  }
+}
+
+/**
+ * Creates and returns the dedicated Redis client used for rate limiting operations.
+ * @param {Config} cfg configuration object
+ * @param {Logger} logger logger instance
+ * @returns {ClientEntryOf<Redis>} Connected rate limit Redis client entry
+ */
+function createRateLimitClient(cfg: Config, logger: Logger): ClientEntryOf<Redis> {
+  logger.info('Creating Rate Limit Connection')
+  const client = createRedisRateLimitStore(cfg)
+  const disconnect = async () => {
+    await client.quit()
+    logger.info('Rate Limit Redis client disconnected')
   }
 
   return {
