@@ -67,6 +67,7 @@
     "nanoid": "^5.1.5",
     "pg": "^8.16.3",
     "pino": "^9.7.0",
+    "rate-limiter-flexible": "^8.2.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   }
