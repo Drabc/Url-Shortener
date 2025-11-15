@@ -4,11 +4,11 @@ import { Logger, LoggerOptions, pino } from 'pino'
 import { config } from '@infrastructure/config/config.js'
 
 const options: LoggerOptions = {
-  level: config.isDev ? 'debug' : 'info',
+  level: config.isNonProd ? 'debug' : 'info',
   timestamp: pino.stdTimeFunctions.isoTime,
 }
 
-const transport = config.isDev
+const transport = config.isNonProd
   ? {
       target: 'pino-pretty',
       options: {

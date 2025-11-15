@@ -26,7 +26,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
   const normalizedError = toBaseError(err)
 
   // Abstract if setup gets more complicated
-  const stack = config.isDev ? normalizedError.stack?.split('\n') : undefined
+  const stack = config.isNonProd ? normalizedError.stack?.split('\n') : undefined
   const details = { stack, url: req.originalUrl }
   const code = mapStatus(normalizedError)
   res.status(code).json(formatError(normalizedError.type, code, normalizedError.message, details))
