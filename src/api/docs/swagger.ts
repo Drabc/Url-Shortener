@@ -32,7 +32,7 @@ export const swaggerSpec = swaggerJSDoc({
                   type: 'object',
                   properties: {
                     url: { type: 'string' },
-                    ...(config.isDev && {
+                    ...(config.isNonProd && {
                       stack: {
                         type: 'array',
                         description: 'Full stack trace (Dev only)',
@@ -52,7 +52,7 @@ export const swaggerSpec = swaggerJSDoc({
           bearerFormat: 'JWT',
           description:
             'Supply the access token in the Authorization header as: Bearer <token>'.concat(
-              config.isDev ? '\nIssued tokens are short-lived; refresh via auth endpoints.' : '',
+              config.isNonProd ? '\nIssued tokens are short-lived; refresh via auth endpoints.' : '',
             ),
         },
       },
@@ -69,6 +69,16 @@ export const swaggerSpec = swaggerJSDoc({
         },
         UnauthorizedError: {
           description: 'Unauthorized - Invalid or missing token',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorFormat',
+              },
+            },
+          },
+        },
+        RateLimitExceeded: {
+          description: 'Rate Limit Exceeded',
           content: {
             'application/json': {
               schema: {

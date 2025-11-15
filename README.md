@@ -25,8 +25,6 @@ A production URL shortener of this size would normally pick one datastore and us
 
 ### Backend
 
-- Add integration tests
-- Rate limits anonymous vs account
 - Open API throws exception. See if it can use results instead.
 - Write proper README
 - Fold in migration initial setup
