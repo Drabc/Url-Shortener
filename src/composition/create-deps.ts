@@ -4,7 +4,7 @@ import { Logger } from 'pino'
 import { JwtService } from '@infrastructure/auth/jwt.service.js'
 import { PersistenceConnections } from '@infrastructure/clients/persistence-connections.js'
 import { Config } from '@infrastructure/config/config.js'
-import { POSTGRES_CLIENT, REDIS_CLIENT } from '@infrastructure/constants.js'
+import { POSTGRES_CLIENT, RATE_LIMIT_CLIENT, REDIS_CLIENT } from '@infrastructure/constants.js'
 import { PgUnitOfWork } from '@infrastructure/db/pg-unit-of-work.js'
 import { PostgresSessionRepository } from '@infrastructure/repositories/session/postgres-session.repository.js'
 import { PostgresShortUrlRepository } from '@infrastructure/repositories/url/postgres-short-url.repository.js'
@@ -24,13 +24,16 @@ import { CookieFormatter } from '@api/utils/cookie-formatter.js'
 import { ShortenUrl } from '@application/use-cases/shorten-url.use-case.js'
 import { ResolveUrl } from '@application/use-cases/resolve-url.use-case.js'
 import { ShortenerController } from '@api/controllers/shortener.controller.js'
+import { RateLimiterService } from '@infrastructure/rate-limit/rate-limiter.service.js'
+import { createRateLimitMiddlewareFactory } from '@api/middlewares/rate-limit/rate-limit.middleware.js'
 
 /**
  * Application dependencies container returned by createDeps function.
  */
 export interface AppDependencies {
   uow: PgUnitOfWork
-  jwtService: JwtService
+  services: { jwtService: JwtService }
+  factories: { rateLimitMiddlewareFactory: ReturnType<typeof createRateLimitMiddlewareFactory> }
   controllers: {
     authController: AuthController
     shortenerController: ShortenerController
@@ -54,6 +57,7 @@ export async function createDeps(
   // Initialize persistence clients
   const postgresClient = connections.get(POSTGRES_CLIENT)
   const redisClient = connections.get(REDIS_CLIENT)
+  const rateLimitClient = connections.get(RATE_LIMIT_CLIENT)
 
   // Initialize repositories
   const postgresShortUrlRepository = new PostgresShortUrlRepository(postgresClient)
@@ -75,6 +79,7 @@ export async function createDeps(
   )
   const accessTokenPublicKey = await importSPKI(config.accessTokenPublicKey, config.accessTokenAlgo)
 
+  // services
   const jwtService = new JwtService(
     config.accessTokenIssuer,
     config.accessTokenAudience,
@@ -85,6 +90,9 @@ export async function createDeps(
     clock,
     logger,
   )
+  const rateLimiterService = new RateLimiterService(rateLimitClient)
+  const rateLimitMiddlewareFactory = createRateLimitMiddlewareFactory(rateLimiterService)
+
   const hasher = new Argon2PasswordHasher(config.pepper)
   const registerUser = new RegisterUser(userRepository, hasher, clock)
   const tokenDigester = new HmacTokenDigester(config.refreshTokenSecret)
@@ -114,7 +122,7 @@ export async function createDeps(
     logoutUser,
     refreshTokenUC,
     cookieFormatter,
-    config.isDev,
+    config.isNonProd,
   )
 
   const shortenUrlUC = new ShortenUrl(shortUrlRepository, config.baseUrl)
@@ -123,7 +131,8 @@ export async function createDeps(
 
   return {
     uow,
-    jwtService,
+    services: { jwtService },
+    factories: { rateLimitMiddlewareFactory },
     controllers: { authController, shortenerController },
   }
 }
