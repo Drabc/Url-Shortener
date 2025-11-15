@@ -102,12 +102,18 @@ export async function createPersistenceConnections(
       } else {
         throw new UnsupportedClientKeyError(key)
       }
-      // Default Clients
-      registry['rate_limit'] = createRateLimitClient(cfg, logger)
     } catch (e) {
       const details = e instanceof Error ? e.message : String(e)
       throw new ClientInitializationError(key, details)
     }
+  }
+
+  try {
+    // Default Clients
+    registry['rate_limit'] = createRateLimitClient(cfg, logger)
+  } catch (e) {
+    const details = e instanceof Error ? e.message : String(e)
+    throw new ClientInitializationError('rate_limit', details)
   }
 
   return new PersistenceConnections(logger, registry)

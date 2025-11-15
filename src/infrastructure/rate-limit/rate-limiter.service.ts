@@ -47,8 +47,6 @@ export class RateLimiterService {
 
   /**
    * Consume a single point for the provided rate limit policy and key.
-   * Returns
-   * or the underlying rate limiting service is unavailable.
    * @param {LimiterPolicy} policy Rate limit policy identifier.
    * @param {string} key Unique key to rate limit (e.g. IP address or user id).
    * @returns {AsyncResult<RateLimiterRes, RateLimitError>} Result indicating success or rate limit error.

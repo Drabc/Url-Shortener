@@ -29,14 +29,11 @@ describe('Rate Limit Middleware', () => {
   let pg: PgClient
   let rateRedis: Redis
 
+  // Maintain shared connections for performance, but recreate the rate limiter/middlewares each test
   beforeAll(async () => {
-    // Ensure redis + rate limit clients are included
-    // (config.clientTypes should already include 'redis' & 'postgres')
     connections = await createPersistenceConnections(config, logger, {
       pg: createPgClientOverwrite,
     })
-    const deps = await createDeps(config, connections, clock, logger)
-    app = createHttpApp(deps)
     pg = connections.get(POSTGRES_CLIENT)
     rateRedis = connections.get(RATE_LIMIT_CLIENT)
   })
@@ -45,11 +42,14 @@ describe('Rate Limit Middleware', () => {
 
   beforeEach(async () => {
     await pg.query('BEGIN')
-    // Isolated rate limit counters each test
+    // Flush Redis so no previous counters persist (rate-limiter-flexible keeps in-memory insurance, so recreate deps)
     await rateRedis.flushdb()
+    const deps = await createDeps(config, connections, clock, logger)
+    app = createHttpApp(deps)
   })
   afterEach(async () => {
     await pg.query('ROLLBACK')
+    // Extra flush to ensure complete isolation even if a test aborts mid-run
     await rateRedis.flushdb()
   })
 
@@ -57,21 +57,22 @@ describe('Rate Limit Middleware', () => {
 
   it('enforces anonymous create URL limit (5 requests then block)', async () => {
     const successes: number[] = []
+    const baseIp = '192.0.2.10' // TEST-NET-1 address for isolation
     for (let i = 0; i < 5; i++) {
       const res = await request(app)
         .post('/api/v1/shorten')
+        .set('X-Forwarded-For', baseIp) // ensure same key per loop
         .send({ url: makeUrl(i) })
       expect(res.status).toBe(201)
       const remaining = Number(res.headers['x-ratelimit-remaining'])
       successes.push(remaining)
     }
-    // Remaining should be descending and end at 0
     expect(successes[0]).toBeGreaterThan(successes[4])
     expect(successes[4]).toBe(0)
 
-    // Sixth request exceeds limit
     const blocked = await request(app)
       .post('/api/v1/shorten')
+      .set('X-Forwarded-For', baseIp)
       .send({ url: makeUrl(99) })
 
     expect(blocked.status).toBe(429)
@@ -85,14 +86,14 @@ describe('Rate Limit Middleware', () => {
   })
 
   it('uses separate authenticated counter for create URL policy', async () => {
-    // Consume some anonymous quota first
+    const anonIp = '192.0.2.20'
     for (let i = 0; i < 3; i++) {
       await request(app)
         .post('/api/v1/shorten')
+        .set('X-Forwarded-For', anonIp)
         .send({ url: makeUrl(i) })
     }
 
-    // Register & login to obtain access token (switch to createUrlAuth policy)
     const email = 'rate.auth@example.com'
     const password = 'Str0ng!Pass'
     const registerRes = await request(app).post('/api/v1/auth/register').send({
@@ -116,15 +117,14 @@ describe('Rate Limit Middleware', () => {
   })
 
   it('general auth policy differs from general anonymous policy selection', async () => {
-    // Login path BEFORE authentication uses generalAnon (100 points)
+    const anonIp = '192.0.2.30'
     const preLogin = await request(app)
       .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', anonIp)
       .send({ email: 'none@example.com', password: 'WrongPass!1' })
-    // Could be 401 but header should still exist from rate limit middleware until error
     const preHeader = preLogin.headers['x-ratelimit-remaining']
     expect(preHeader).toBeDefined()
 
-    // Register + login properly, then hit authenticated endpoint (logout) -> generalAuth counter
     const email = 'rate.switch@example.com'
     const password = 'Str0ng!Pass'
     await request(app).post('/api/v1/auth/register').send({
@@ -142,7 +142,6 @@ describe('Rate Limit Middleware', () => {
     expect(logoutRes.status).toBe(200)
     const postHeader = logoutRes.headers['x-ratelimit-remaining']
     expect(postHeader).toBeDefined()
-    // Auth remaining should be much larger than anon remaining (e.g. 999 vs 99)
     expect(Number(postHeader)).toBeGreaterThan(Number(preHeader))
   })
 })

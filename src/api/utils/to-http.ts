@@ -14,9 +14,9 @@ import { config } from '@infrastructure/config/config.js'
  * - internal_error  -> 500 Internal Error
  * - (default)       -> 500 Unknown Error
  *
- * In development mode (`config.isDev`) the returned object is augmented with a `cause` field
+ * In non-prod mode (`config.NonProd`) the returned object is augmented with a `cause` field
  * containing the original error cause (if present) to aid debugging; this field is omitted in
- * other environments to avoid leaking internal details.
+ * production to avoid leaking internal details.
  * @param {AnyError} error Application error instance to translate.
  * @returns {{ status: number; body: JsonErrorFormat }} HTTP status code and formatted error body.
  */
@@ -70,7 +70,10 @@ export const toHttp = (error: AnyError): { status: number; body: JsonErrorFormat
   }
 
   return {
-    ...response,
-    ...(config.isNonProd ? { cause: error.cause } : {}),
+    status: response.status,
+    body: {
+      ...response.body,
+      ...(config.isNonProd ? { cause: error.cause } : {}),
+    },
   }
 }
