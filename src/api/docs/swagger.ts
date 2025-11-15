@@ -52,7 +52,9 @@ export const swaggerSpec = swaggerJSDoc({
           bearerFormat: 'JWT',
           description:
             'Supply the access token in the Authorization header as: Bearer <token>'.concat(
-              config.isNonProd ? '\nIssued tokens are short-lived; refresh via auth endpoints.' : '',
+              config.isNonProd
+                ? '\nIssued tokens are short-lived; refresh via auth endpoints.'
+                : '',
             ),
         },
       },
