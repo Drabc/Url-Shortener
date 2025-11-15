@@ -1,22 +1,22 @@
-import { Router } from 'express'
+import { Handler, Router } from 'express'
 
 import { AuthController } from '@api/controllers/auth.controller.js'
 import { IUnitOfWork } from '@application/ports/unit-of-work.js'
 import { withUnitOfWork } from '@api/utils/with-unit-of-work.js'
-import { requireAuth } from '@api/middlewares/require-auth.middleware.js'
-import { IJwtVerifier } from '@application/ports/jwt-verifier.js'
 
 /**
  * Creates and configures the user router.
  * @param {AuthController} controller UserController handling user-related requests.
  * @param {IUnitOfWork} uow - Unit of Work controlling execution scope.
- * @param {IJwtVerifier} verifier - JWT verifier used to authenticate requests.
+ * @param {Handler} authMiddleware - Middleware to enforce authentication.
+ * @param {Handler} rateLimitMiddleware - Middleware to apply rate limiting to auth endpoints.
  * @returns {Router} Express Router with user routes registered.
  */
 export function createAuthRouter(
   controller: AuthController,
   uow: IUnitOfWork,
-  verifier: IJwtVerifier,
+  authMiddleware: Handler,
+  rateLimitMiddleware: Handler,
 ): Router {
   const authRouter = Router()
 
@@ -71,10 +71,12 @@ export function createAuthRouter(
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ErrorFormat'
+   *       '429':
+   *         $ref: '#/components/responses/RateLimitExceeded'
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
-  authRouter.post('/auth/register', controller.register.bind(controller))
+  authRouter.post('/auth/register', rateLimitMiddleware, controller.register.bind(controller))
 
   /**
    * @openapi
@@ -130,10 +132,16 @@ export function createAuthRouter(
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ErrorFormat'
+   *       '429':
+   *         $ref: '#/components/responses/RateLimitExceeded'
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
-  authRouter.post('/auth/login', withUnitOfWork(uow, controller.login.bind(controller)))
+  authRouter.post(
+    '/auth/login',
+    rateLimitMiddleware,
+    withUnitOfWork(uow, controller.login.bind(controller)),
+  )
 
   /**
    * @openapi
@@ -161,10 +169,16 @@ export function createAuthRouter(
    *                   type: string
    *       '401':
    *         $ref: '#/components/responses/UnauthorizedError'
+   *       '429':
+   *         $ref: '#/components/responses/RateLimitExceeded'
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
-  authRouter.post('/auth/refresh', withUnitOfWork(uow, controller.refresh.bind(controller)))
+  authRouter.post(
+    '/auth/refresh',
+    rateLimitMiddleware,
+    withUnitOfWork(uow, controller.refresh.bind(controller)),
+  )
 
   /**
    * @openapi
@@ -188,10 +202,17 @@ export function createAuthRouter(
    *                   example: Logged out successfully
    *       '401':
    *         $ref: '#/components/responses/UnauthorizedError'
+   *       '429':
+   *         $ref: '#/components/responses/RateLimitExceeded'
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
-  authRouter.post('/auth/logout', requireAuth(verifier), controller.logout.bind(controller))
+  authRouter.post(
+    '/auth/logout',
+    authMiddleware,
+    rateLimitMiddleware,
+    controller.logout.bind(controller),
+  )
 
   /**
    * @openapi
@@ -215,12 +236,15 @@ export function createAuthRouter(
    *                   example: Logged out from all devices successfully
    *       '401':
    *         $ref: '#/components/responses/UnauthorizedError'
+   *       '429':
+   *         $ref: '#/components/responses/RateLimitExceeded'
    *       '500':
    *         $ref: '#/components/responses/SystemError'
    */
   authRouter.post(
     '/auth/logout-all',
-    requireAuth(verifier),
+    authMiddleware,
+    rateLimitMiddleware,
     withUnitOfWork(uow, controller.logoutAll.bind(controller)),
   )
 
